@@ -26,6 +26,9 @@
 #include <lcd_lld.h>
 #include <color.h>
 #include <stm32f4xx_adc.h>
+#include "player.h"
+#include "game.h"
+#include "uart.h"
 
 #define SPEED	500000
 

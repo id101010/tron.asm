@@ -30,71 +30,32 @@
 #include "game.h"
 #include "uart.h"
 
-#define SPEED	500000
 
-uint16_t colors[] = {
-	GUI_COLOR_BLACK,
-	GUI_COLOR_WHITE,
-	GUI_COLOR_LIGHT_GRAY,
-	GUI_COLOR_DARK_GREY,
-	GUI_COLOR_RED,
-	GUI_COLOR_YELLOW,
-	GUI_COLOR_ORANGE,
-	GUI_COLOR_BROWN,
-	GUI_COLOR_GREEN,
-	GUI_COLOR_CYAN,
-	GUI_COLOR_BLUE,
-	GUI_COLOR_PINK,
-	GUI_COLOR_MAGENTA
-};
+game_t gameobj;
 
-volatile unsigned char* LED = (volatile unsigned char*)0x6C000200;
-volatile unsigned char* SWITCH = (volatile unsigned char*)0x6C000400;
-GPIO_InitTypeDef g;
+uint64_t ticks;
+uint64_t lastTicks;
 
-
-void init_gpio(void)
-{
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-	g.GPIO_Pin		= GPIO_Pin_0;
-	g.GPIO_Mode 	= GPIO_Mode_OUT;
-	g.GPIO_OType 	= GPIO_OType_PP;
-	g.GPIO_Speed	= GPIO_Speed_2MHz;
-	g.GPIO_PuPd		= GPIO_PuPd_NOPULL;
-	GPIO_Init(GPIOA, &g);
+void SysTick_Handler() {
+    ticks++;
 }
+
+
+#define SYSCLK 168e6
+#define TICKS_PER_SECOND 100
 
 int main(void)
 {
-	int i = 0, j = 0, m = 0;
+    if(SysTick_Config(SYSCLK/TICKS_PER_SECOND)) { //if systick config fails
+        while(1); //sleep forever
+    }
 
-	*LED = 0b00000001;
-
-	LCD_Init();
-	init_gpio();
-	LCD_Clear(GUI_COLOR_RED);
-
-	while(1){
-
-		for(m = 0; (m <= 12); m++){
-
-			LCD_Clear(colors[m]);
-
-			GPIO_WriteBit(GPIOA, GPIO_Pin_0, 1);
-
-			for(i = 0; i < 7; i++){
-				*LED<<=1;
-				for(j = 0; j < SPEED; j++);
-			}
-
-			GPIO_WriteBit(GPIOA, GPIO_Pin_0, 0);
-
-			for(i = 7; i > 0; i--){
-				*LED>>=1;
-				for(j = 0; j < SPEED; j++);
-			}
-		}
-	}
+    game_init(&gameobj);
+    while(1) {
+        uint64_t curTicks = ticks;
+        game_step(&gameobj,curTicks-lastTicks); //calculate next game step, and pass it the delta time
+        lastTicks = curTicks;
+    }
 
 	return 0;
 }

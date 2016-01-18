@@ -18,13 +18,20 @@ typedef struct player_s {
     uint16_t color;
     uint16_t num_positions;
     
+    enum {
+        right, 
+        down,
+        left, 
+        up
+    } direction;
+
     enum{
         dead,
         alive,
-    }state;
+    } state;
 
     point_t past_positions[max_positions];
-    point_t curr_position;
+    point_t position;
 
 } player_t;
 

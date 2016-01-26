@@ -4,17 +4,11 @@
 #include <color.h>
 #include "io.h"
 
-static pin_t pin_left;
-static pin_t pin_right;
-
-
 void game_init(game_t* game) {
     //Sysinit
 
-    //gpio init (move to module?)
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC,ENABLE);
-    pin_create(&pin_right, GPIOC, 7, true);
-    pin_create(&pin_left, GPIOI, 0, true);
+    //gpio init
+    io_init();
     
     //uart init
 
@@ -24,8 +18,7 @@ void game_init(game_t* game) {
     
     //struct init
     game->state=prestart;
-    game->host_id = 0;
-    game->ticks_per_pixel = SPEED_SLOW;
+    game->ticks_per_pixel = SPEED_DEFAULT;
     game->ticks_leftover =0;
 } 
 
@@ -38,14 +31,15 @@ void game_step(game_t* game, uint64_t deltaTime) {
             LCD_DrawRectF(10,10,100,50,GUI_COLOR_BLUE);
             
             //wait on player to press start (host)
-            while(!pin_get(&pin_right));
-            while(pin_get(&pin_right));
+            while(!io_button_has_edge(BTN_START));
 
             //send game start request to slave
             //wait on game accept response
             
             //setup
-            player_init(&(game->player[game->host_id]));
+			//void player_init(player_t* player, uint8_t btn_left, uint8_t btn_right, point_t pos, uint16_t color, direction_t direction); 
+            player_init(&(game->player[0]), BTN_PLAYER_1_LEFT, BTN_PLAYER_1_RIGHT, (point_t){.x=10,.y=120}, GUI_COLOR_BLUE, right);
+            player_init(&(game->player[1]), BTN_PLAYER_2_LEFT, BTN_PLAYER_2_RIGHT, (point_t){.x=230,.y=120}, GUI_COLOR_RED, left);
 
             
             //switch state
@@ -54,65 +48,74 @@ void game_step(game_t* game, uint64_t deltaTime) {
         break;    
         case running:
         {
-            bool directionChange = false;
-            player_t* host_player = &(game->player[game->host_id]);
-            if(pin_get(&pin_left)) {
-                while(pin_get(&pin_left));
-                host_player->direction= (host_player->direction + 3) % 4 ; // "decrement enum value"
-                directionChange = true;
-            } else if(pin_get(&pin_right)) {
-                while(pin_get(&pin_right));
-                host_player->direction= (host_player->direction + 1) % 4 ; // "increment enum value"
-                directionChange = true;
-            }
+			uint16_t ticks; 
+			uint16_t pixels = 0;
+ 
+			if(deltaTime) {
 
-            if(directionChange) {
-                player_append_position(host_player,host_player->position);
-            }
-            if(deltaTime) {
-                uint16_t ticks = game->ticks_leftover + deltaTime;
-                uint16_t pixels = ticks / game->ticks_per_pixel;
-                game->ticks_leftover = ticks % game->ticks_per_pixel;       
-                if(pixels) {
-                    point_t last_point = host_player->past_positions[host_player->num_positions-1];  
-                    switch(host_player->direction) {
-                        case down:
-                            host_player->position.y+=pixels;
-                            LCD_DrawRectF(  host_player->position.x,
-                                            last_point.y,
-                                            PLAYER_WIDTH,
-                                            host_player->position.y - last_point.y,
-                                            host_player->color);
-                            break;
-                        case left:
-                            host_player->position.x-=pixels;
-                            LCD_DrawRectF(  host_player->position.x,
-                                            host_player->position.y,
-                                            last_point.x -host_player->position.x,
-                                            PLAYER_WIDTH,
-                                            host_player->color);
-                            break;
-                        case up:
-                            host_player->position.y-=pixels;
-                            LCD_DrawRectF(  host_player->position.x,
-                                            host_player->position.y,
-                                            PLAYER_WIDTH,
-                                            last_point.y - host_player->position.y,
-                                            host_player->color);
-                            break;
-                        case right:
-                            host_player->position.x+=pixels;
-                            LCD_DrawRectF(  last_point.x,
-                                            host_player->position.y,
-                                            host_player->position.x - last_point.x,
-                                            PLAYER_WIDTH,
-                                            host_player->color);
-                            break;
-                    }
-                }
-            }
-         }
+				ticks 	= game->ticks_leftover + deltaTime;
+				pixels 	= ticks / game->ticks_per_pixel;
+
+				game->ticks_leftover = ticks % game->ticks_per_pixel;  
+			}
+
+			for(int i = 0; i < PLAYER_COUNT; i++) {
+
+				bool directionChange = false;
+				player_t* player = &(game->player[i]);
+
+				if(io_button_has_edge(player->btn_left)) {
+					player->direction= (player->direction + (4 - 1)) % 4 ; // "decrement enum value"
+					directionChange = true;
+				} else if(io_button_has_edge(player->btn_right)) {
+					player->direction= (player->direction + 1) % 4 ; // "increment enum value"
+					directionChange = true;
+				}
+
+				if(directionChange) {
+					player_append_position(player,player->position);
+				}
+     
+				if(pixels) {
+					point_t last_point = player->past_positions[player->num_positions-1];  
+					switch(player->direction) {
+						case down:
+							player->position.y+=pixels;
+							LCD_DrawRectF(  player->position.x,
+											last_point.y,
+											PLAYER_WIDTH,
+											player->position.y - last_point.y,
+											player->color);
+							break;
+						case left:
+							player->position.x-=pixels;
+							LCD_DrawRectF(  player->position.x,
+											player->position.y,
+											last_point.x -player->position.x,
+											PLAYER_WIDTH,
+											player->color);
+							break;
+						case up:
+							player->position.y-=pixels;
+							LCD_DrawRectF(  player->position.x,
+											player->position.y,
+											PLAYER_WIDTH,
+											last_point.y - player->position.y,
+											player->color);
+							break;
+						case right:
+							player->position.x+=pixels;
+							LCD_DrawRectF(  last_point.x,
+											player->position.y,
+											player->position.x - last_point.x,
+											PLAYER_WIDTH,
+											player->color);
+							break;
+					}
+				}
+			 }
          break; 
+		}
     }
 }
 

@@ -1,17 +1,13 @@
+#ifndef IO_H
+#define IO_H
+
 #include <stdbool.h>
 #include <stm32f4xx.h>
 
-typedef struct pin_s {
-	GPIO_TypeDef* GPIO;
-	uint16_t pinmask;
-	bool input;
-} pin_t;
 
-void pin_create(pin_t* pin, GPIO_TypeDef* GPIO, uint8_t pinnr, bool input);
-bool pin_get(pin_t* pin);
-void pin_set(pin_t* pin, bool status);
-void pin_toggle(pin_t* pin);
+void io_init(void);
+void io_process(void);
+bool io_button_has_edge(uint8_t btnnumber);
 
 
-
-
+#endif /* IO_H */

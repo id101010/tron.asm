@@ -27,9 +27,9 @@
 #include <color.h>
 #include <stm32f4xx_adc.h>
 #include "player.h"
+#include "io.h"
 #include "game.h"
 #include "uart.h"
-
 
 game_t gameobj;
 
@@ -38,11 +38,11 @@ uint64_t lastTicks;
 
 void SysTick_Handler() {
     ticks++;
+    io_process();
 }
 
-
-#define SYSCLK 168e6
-#define TICKS_PER_SECOND 100
+#define SYSCLK              168e6
+#define TICKS_PER_SECOND    100
 
 int main(void)
 {

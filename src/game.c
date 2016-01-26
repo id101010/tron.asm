@@ -1,10 +1,11 @@
-#include "game.h"
 #include <lcd.h>
 #include <lcd_lld.h>
 #include <color.h>
+#include <stdio.h>
+#include "game.h"
 #include "io.h"
 
-void game_init(game_t* game) {
+void game_init(game_t* game, uint16_t ticks_per_sec) {
     //Sysinit
 
     //gpio init
@@ -19,7 +20,10 @@ void game_init(game_t* game) {
     //struct init
     game->state=prestart;
     game->ticks_per_pixel = SPEED_DEFAULT;
-    game->ticks_leftover =0;
+    game->ticks_leftover = 0;
+    game->ticks_per_sec = ticks_per_sec;
+    game->time = 0;
+    game->ticks_sum_sec = 0;
 }
 
 bool game_check_line_collision(player_t* player, point_t start, point_t end, uint8_t pixels){
@@ -116,9 +120,10 @@ bool game_player_check_collision(game_t* game, player_t* player, uint8_t pixels)
     return false; // no collision!
 }
 
-void game_player_update(game_t* game, player_t* player, uint8_t pixels){
+bool game_player_update(game_t* game, player_t* player, uint8_t pixels){
 
     bool directionChange = false;
+    bool stateChanged = false;
 
     // Check for button presses
     if(io_button_has_edge(player->btn_left)) {
@@ -131,7 +136,7 @@ void game_player_update(game_t* game, player_t* player, uint8_t pixels){
 
     // Check if player is alive
     if(player->state != alive){
-        return;
+        return stateChanged;
     }
     // Change direction
     if(directionChange) {
@@ -143,6 +148,7 @@ void game_player_update(game_t* game, player_t* player, uint8_t pixels){
         // Check if a collision is about to happen
         if(game_player_check_collision(game, player, pixels)){
             player->state=dead;
+            stateChanged=true;
         }
 
         point_t last_point = player->past_positions[player->num_positions-1];  
@@ -182,7 +188,7 @@ void game_player_update(game_t* game, player_t* player, uint8_t pixels){
                 break;
         }
     }
-
+    return stateChanged;
 }
 
 bool game_step(game_t* game, uint64_t deltaTime) {
@@ -221,6 +227,7 @@ bool game_step(game_t* game, uint64_t deltaTime) {
             
             //switch state
             game->state = running;
+            game->time = 0; 
 
 	        LCD_Clear(GUI_COLOR_BLACK);
             LCD_DrawRect(TFT_GAME_FIELD_LEFT, 
@@ -228,6 +235,16 @@ bool game_step(game_t* game, uint64_t deltaTime) {
                         (TFT_WIDTH - TFT_GAME_FIELD_LEFT - TFT_GAME_FIELD_RIGHT - 1), 
                         (TFT_HEIGHT - TFT_GAME_FIELD_TOP - TFT_GAME_FIELD_BOTTOM - 1), 
                         GUI_COLOR_WHITE);
+
+            LCD_SetTextColor(GUI_COLOR_WHITE);
+            LCD_DisplayStringXY(TFT_GAME_HEADER_TIME_X, TFT_GAME_HEADER_TIME_Y, "Time: 0:00");
+            for(int i = 0; i < PLAYER_COUNT; i++){
+                static char buf[16];
+                LCD_SetTextColor(game->player[i].color);
+                sprintf(buf, "Player%d: alive", (i+1));
+                LCD_DisplayStringXY(TFT_GAME_HEADER_PLAYER_X+i*TFT_GAME_HEADER_PLAYER_WIDTH, TFT_GAME_HEADER_PLAYER_Y, buf);
+            }
+
             return true;
 
         case running:
@@ -239,13 +256,36 @@ bool game_step(game_t* game, uint64_t deltaTime) {
 				ticks 	= game->ticks_leftover + deltaTime;
 				pixels 	= ticks / game->ticks_per_pixel;
 				game->ticks_leftover = ticks % game->ticks_per_pixel;  
+                game->ticks_sum_sec += deltaTime;
+
+                uint16_t new_seconds = game->ticks_sum_sec / game->ticks_per_sec;
+
+                game->time += new_seconds;
+                game->ticks_sum_sec = game->ticks_sum_sec % game->ticks_per_sec;
+
+                if(new_seconds > 0){
+                    static char buf[15];
+                    sprintf(buf, "Time: %d:%02d", (game->time / 60), (game->time % 60));
+                    LCD_SetTextColor(GUI_COLOR_WHITE);
+                    LCD_DisplayStringXY(TFT_GAME_HEADER_TIME_X, TFT_GAME_HEADER_TIME_Y, buf);
+                }
 			}
 
             // For each player do ...
             bool all_players_dead = true;
 			for(int i = 0; i < PLAYER_COUNT; i++) {
                 player_t* player = &(game->player[i]);
-                game_player_update(game, player, pixels);
+                if(game_player_update(game, player, pixels)) { //update player and execute if, when player state has changed
+                    static char buf[15];
+                    const char* state_text = "alive";
+                    if(player->state==dead) {
+                        state_text="dead";
+                    }
+                    sprintf(buf, "Player%d: %s ", (i+1),state_text);
+                    LCD_SetTextColor(player->color);
+                    LCD_DisplayStringXY(TFT_GAME_HEADER_PLAYER_X+i*TFT_GAME_HEADER_PLAYER_WIDTH, TFT_GAME_HEADER_PLAYER_Y, buf);
+                }
+
                 if(player->state!=dead) {
                     all_players_dead=false;
                 }
@@ -253,7 +293,6 @@ bool game_step(game_t* game, uint64_t deltaTime) {
 
             if(all_players_dead) {
                 game->state=ended;
-	            LCD_Clear(GUI_COLOR_BLACK);
                 return true;
             } else {
                 return false;
@@ -261,10 +300,9 @@ bool game_step(game_t* game, uint64_t deltaTime) {
 		}
 
         case ended:
-
-        game->state= prestart;
-        return false;
+            while(!io_button_has_edge(BTN_START));
+	        LCD_Clear(GUI_COLOR_BLACK);
+            game->state= prestart;
+        return true;
     }
 }
-
-

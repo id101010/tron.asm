@@ -50,7 +50,7 @@ int main(void)
         while(1); //sleep forever
     }
 
-    game_init(&gameobj);
+    game_init(&gameobj, TICKS_PER_SECOND);
     while(1) {
         uint64_t curTicks = ticks;
         if(game_step(&gameobj,curTicks-lastTicks)) { //calculate next game step, and pass it the delta time

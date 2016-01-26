@@ -53,8 +53,11 @@ int main(void)
     game_init(&gameobj);
     while(1) {
         uint64_t curTicks = ticks;
-        game_step(&gameobj,curTicks-lastTicks); //calculate next game step, and pass it the delta time
-        lastTicks = curTicks;
+        if(game_step(&gameobj,curTicks-lastTicks)) { //calculate next game step, and pass it the delta time
+            lastTicks = ticks;
+        } else {
+            lastTicks = curTicks;
+        }
     }
 
 	return 0;

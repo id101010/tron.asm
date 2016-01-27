@@ -1,3 +1,5 @@
+#include <stm32f4xx.h>
+#include <carme_io2.h>
 #include "io.h"
 
 // Local functions
@@ -17,6 +19,14 @@ static pin_t pin_t0;
 static pin_t pin_t1;
 static pin_t pin_t2;
 static pin_t pin_t3;
+static pin_t pin_s0;
+static pin_t pin_s1;
+static pin_t pin_s2;
+static pin_t pin_s3;
+static pin_t pin_s4;
+static pin_t pin_s5;
+static pin_t pin_s6;
+static pin_t pin_s7;
 static uint8_t new = 0;
 static uint8_t old = 0;
 static volatile uint8_t edg = 0;
@@ -66,10 +76,22 @@ void pin_toggle(pin_t* pin) {
 
 void io_init(void){
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC,ENABLE); // Enable gpio clock source
+    // Create player pins
     pin_create(&pin_t0, GPIOC, 7, true);  // create pin_t0
     pin_create(&pin_t1, GPIOB, 15, true); // create pin_t1
     pin_create(&pin_t2, GPIOB, 14, true); // create pin_t2
     pin_create(&pin_t3, GPIOI, 0, true);  // create pin_t3
+
+    // TODO: Create color choosing pins
+    /*pin_create(&pin_s0, GPIO, , true); // create pin_t0
+    pin_create(&pin_s1, GPIO, , true); // create pin_t1
+    pin_create(&pin_s2, GPIO, , true); // create pin_t2
+    pin_create(&pin_s3, GPIO, , true); // create pin_t3
+    pin_create(&pin_s4, GPIO, , true); // create pin_t0
+    pin_create(&pin_s5, GPIO, , true); // create pin_t1
+    pin_create(&pin_s6, GPIO, , true); // create pin_t2
+    pin_create(&pin_s7, GPIO, , true); // create pin_t3*/
+
 
 }
 
@@ -92,4 +114,68 @@ bool io_button_has_edge(uint8_t btnnumber) {
     }
 
     return status;
+}
+
+void init_adc(){
+    /*
+    //Enable the peripheral clock of GPIOB
+    //This has been already done in the startup code
+    //Page 239/1718 of "RM0090 Reference Reference Manual (October 2014)"
+    RCC->AHB1ENR |= RCC_AHB1Periph_GPIOB;
+    //Choose the working mode of PB0 with the GPIO port mode register
+    //Page 279/1718 of "RM0090 Reference Reference Manual (October 2014)"
+    GPIOB->MODER &= ~GPIO_MODER_MODER0;
+    GPIOB->MODER |=  GPIO_Mode_AN;
+    //Configure the GPIO port pull-up/pull-down register for PB0
+    //Page 282/1718 of "RM0090 Reference Reference Manual (October 2014)"
+    GPIOB->PUPDR &= ~GPIO_PUPDR_PUPDR0;
+    GPIOB->PUPDR |=  GPIO_PuPd_UP;
+
+    //Initialize the ADC
+    //Enable the peripheral clock of the ADC
+    //Page 245/1718 of "RM0090 Reference Reference Manual (October 2014)"
+    RCC->APB2ENR |= RCC_APB2Periph_ADC;
+    //Configure ADC1: scan conversion mode and resolution
+    //Set SCAN bit according to ADC_ScanConvMode value
+    //Set RES bit according to ADC_Resolution value
+    // Page 416/1718 of "RM0090 Reference Reference Manual (October 2014)"
+    ADC1->CR1 = ADC_Resolution_10b;
+    // Configure ADC1: regular channel sequence length
+    // Set L bits according to ADC_NbrOfConversion value
+    // Page 422/1718 of "RM0090 Reference Reference Manual (October 2014)"
+    ADC1->SQR1 = 0;
+    // Set the ADON bit to enable the ADC
+    // Page 418/1718 of "RM0090 Reference Reference Manual (October 2014)"
+    ADC1->CR2 = ADC_CR2_ADON;
+    */
+}
+
+uint16_t read_adc(){
+    uint16_t value = 0;
+    /*
+    // Specify the sample time for the conversion
+    ADC1->SMPR2 &= SMPR1_SMP_SET           << (3 * ADC_Channel_8);
+    ADC1->SMPR2 |= ADC_SampleTime_15Cycles << (3 * ADC_Channel_8);
+    // Set the channel 8 as the first conversion in the ADC reg seq register
+    ADC1->SQR3  &= ~SQR3_SQ_SET;
+    ADC1->SQR3  |= ADC_Channel_8;
+    // Start the conversion
+    ADC1->CR2 |= ADC_CR2_SWSTART;   
+    // Wait until the conversion has been done
+    while( (ADC1->SR & ADC_FLAG_EOC) == 0 );
+    // Read the value
+    value = ADC1->DR;
+    value &= 0x03FF;
+    */
+    return value;
+}
+
+uint16_t get_player_color(player_t* player, bool first_player){
+    if(!first_player){
+        // Read bit 0-3 and calculate color
+    }else{
+        // Read but 4-7 and calculate color
+    }
+
+    return 0;
 }

@@ -8,14 +8,17 @@
 
 void game_init(game_t* game, uint16_t ticks_per_sec) {
     
-    //gpio init
+    // gpio init
     io_init();
+
+    // adc init
+    init_adc();
     
-    //lcd init
+    // lcd init
     LCD_Init();
     LCD_Clear(GUI_COLOR_BLACK);
     
-    //struct init
+    // struct init
     game->state=prestart;
     game->ticks_per_pixel = SPEED_DEFAULT;
     game->ticks_leftover = 0;
@@ -214,9 +217,15 @@ bool game_step(game_t* game, uint64_t delta_time) { // Calculate the next game s
         case prestart: // If the game is in prestart state
             // Draw welcome screen
             LCD_DrawRectF(10,10,100,50,GUI_COLOR_BLUE);
+
+            // TODO: Read color of player 1
+            uint16_t player1_color = get_player_color(&(game->player[0]), true);
+
+            // TODO: Read color of player 2
+            uint16_t player2_color = get_player_color(&(game->player[1]), false);
             
-            // Wait on player to press start
-            while(!io_button_has_edge(BTN_START));
+            // TODO: Read potentiometer and set game speed accordingly
+            uint16_t game_speed = read_adc();
 
             // Setup the two players
             player_init(&(game->player[0]), // Player object to fill
@@ -237,7 +246,10 @@ bool game_step(game_t* game, uint64_t delta_time) { // Calculate the next game s
                             .y=(((TFT_HEIGHT - TFT_GAME_FIELD_TOP - TFT_GAME_FIELD_BOTTOM) / 2) + TFT_GAME_FIELD_TOP) // y start coordinate
                         }, 
                         GUI_COLOR_RED, // color
-                        left); // default moving direction
+                        left); // default moving direction 
+            
+            // Wait on player to press start
+            while(!io_button_has_edge(BTN_START));
             
             game->state = running; // Switch the game state to running
             game->time = 0; // Reset the game time

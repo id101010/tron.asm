@@ -14,8 +14,8 @@ void game_init(game_t* game, uint16_t ticks_per_sec) {
     //uart init
 
     //lcd init
-	LCD_Init();
-	LCD_Clear(GUI_COLOR_BLACK);
+    LCD_Init();
+    LCD_Clear(GUI_COLOR_BLACK);
     
     //struct init
     game->state=prestart;
@@ -68,8 +68,8 @@ bool game_check_line_collision(player_t* player, point_t start, point_t end, uin
     return false;
 }
 
-bool game_player_check_collision(game_t* game, player_t* player, uint8_t pixels){
-   
+bool game_check_bounding_collision(game_t* game, player_t* player, uint8_t pixels){
+    
     // Check bounding collision
     switch(player->direction){
         case up:
@@ -94,7 +94,11 @@ bool game_player_check_collision(game_t* game, player_t* player, uint8_t pixels)
             break;
     }
 
-    // Check collision with players (including self)
+    return false;
+}
+
+bool game_check_player_collision(game_t* game, player_t* player, uint8_t pixels){
+    // Check for collisions with players (including self)
     for(int i = 0; i < PLAYER_COUNT; i++){
 
         player_t* colliding = &(game->player[i]); // pointer to player whose lines we want to check (against opponent or self)
@@ -107,7 +111,7 @@ bool game_player_check_collision(game_t* game, player_t* player, uint8_t pixels)
             if(game_check_line_collision(player, last_point, curr_point, pixels)){ // check if player collides with line segment
                 return true;
             }
-
+            
             last_point = curr_point; // set new start point 
         }
 
@@ -115,6 +119,20 @@ bool game_player_check_collision(game_t* game, player_t* player, uint8_t pixels)
             game_check_line_collision(player, last_point, colliding->position, pixels)){ // check if player collides with newest segment of opponent
             return true;
         }
+    }
+}
+
+// Do all collision checks!
+bool game_check_collision(game_t* game, player_t* player, uint8_t pixels){
+
+    // Check for collisions with boundings
+    if(game_check_bounding_collision(game, player, pixels)){
+        return true;
+    }
+    
+    // Check for collisions with players (including self)
+    if(game_check_player_collision(game, player, pixels)){
+        return true;
     }
 
     return false; // no collision!
@@ -146,7 +164,7 @@ bool game_player_update(game_t* game, player_t* player, uint8_t pixels){
     if(pixels) {
 
         // Check if a collision is about to happen
-        if(game_player_check_collision(game, player, pixels)){
+        if(game_check_collision(game, player, pixels)){
             player->state=dead;
             stateChanged=true;
         }
@@ -229,7 +247,7 @@ bool game_step(game_t* game, uint64_t deltaTime) {
             game->state = running;
             game->time = 0; 
 
-	        LCD_Clear(GUI_COLOR_BLACK);
+            LCD_Clear(GUI_COLOR_BLACK);
             LCD_DrawRect(TFT_GAME_FIELD_LEFT, 
                         TFT_GAME_FIELD_TOP, 
                         (TFT_WIDTH - TFT_GAME_FIELD_LEFT - TFT_GAME_FIELD_RIGHT - 1), 
@@ -249,13 +267,13 @@ bool game_step(game_t* game, uint64_t deltaTime) {
 
         case running:
         {
-			uint16_t ticks; 
-			uint16_t pixels = 0;
+            uint16_t ticks; 
+            uint16_t pixels = 0;
  
-			if(deltaTime) {
-				ticks 	= game->ticks_leftover + deltaTime;
-				pixels 	= ticks / game->ticks_per_pixel;
-				game->ticks_leftover = ticks % game->ticks_per_pixel;  
+            if(deltaTime) {
+                ticks   = game->ticks_leftover + deltaTime;
+                pixels  = ticks / game->ticks_per_pixel;
+                game->ticks_leftover = ticks % game->ticks_per_pixel;  
                 game->ticks_sum_sec += deltaTime;
 
                 uint16_t new_seconds = game->ticks_sum_sec / game->ticks_per_sec;
@@ -269,11 +287,11 @@ bool game_step(game_t* game, uint64_t deltaTime) {
                     LCD_SetTextColor(GUI_COLOR_WHITE);
                     LCD_DisplayStringXY(TFT_GAME_HEADER_TIME_X, TFT_GAME_HEADER_TIME_Y, buf);
                 }
-			}
+            }
 
             // For each player do ...
             bool all_players_dead = true;
-			for(int i = 0; i < PLAYER_COUNT; i++) {
+            for(int i = 0; i < PLAYER_COUNT; i++) {
                 player_t* player = &(game->player[i]);
                 if(game_player_update(game, player, pixels)) { //update player and execute if, when player state has changed
                     static char buf[15];
@@ -289,7 +307,7 @@ bool game_step(game_t* game, uint64_t deltaTime) {
                 if(player->state!=dead) {
                     all_players_dead=false;
                 }
-			}
+            }
 
             if(all_players_dead) {
                 game->state=ended;
@@ -297,11 +315,11 @@ bool game_step(game_t* game, uint64_t deltaTime) {
             } else {
                 return false;
             }
-		}
+        }
 
         case ended:
             while(!io_button_has_edge(BTN_START));
-	        LCD_Clear(GUI_COLOR_BLACK);
+            LCD_Clear(GUI_COLOR_BLACK);
             game->state= prestart;
         return true;
     }

@@ -118,6 +118,8 @@ bool game_check_player_collision(game_t* game, player_t* player, uint8_t pixels)
             return true;
         }
     }
+
+    return false;
 }
 
 bool game_check_collision(game_t* game, player_t* player, uint8_t pixels){ // Check boundary and player collisions

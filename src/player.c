@@ -1,5 +1,6 @@
-#include "player.h"
 #include <color.h>
+
+#include "player.h"
 
 void player_init(player_t* player, uint8_t btn_left, uint8_t btn_right, 
                  point_t pos, uint16_t color, direction_t direction) {

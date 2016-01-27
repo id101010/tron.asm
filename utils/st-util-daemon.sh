@@ -4,7 +4,7 @@
 #
 
 pid=/tmp/st-util.pid
-isp=/dev/stlinkv2_2
+isp=/dev/stlinkv2_8
 
 case "$1" in
     "start")

@@ -1,16 +1,16 @@
 /**
  *****************************************************************************
- * @addtogroup	CARME
+ * @addtogroup  CARME
  * @{
- * @addtogroup	USART
+ * @addtogroup  USART
  * @{
  *
- * @file		syscalls.c
+ * @file        syscalls.c
  *
- * @brief		Atollic TrueSTUDIO Minimal System calls file\n
- *				For more information about which c-functions need which of
- *				these lowlevel functions please consult the Newlib
- *				libc-manual.
+ * @brief       Atollic TrueSTUDIO Minimal System calls file\n
+ *              For more information about which c-functions need which of
+ *              these lowlevel functions please consult the Newlib
+ *              libc-manual.
  *
  *****************************************************************************
  * @copyright
@@ -46,7 +46,7 @@ extern "C" {
 
 /*----- Macros -------------------------------------------------------------*/
 #ifndef SYSCALL_USART
-#define SYSCALL_USART	USART1		/**< The IO USART to use in syscall		*/
+#define SYSCALL_USART   USART1      /**< The IO USART to use in syscall     */
 #endif
 
 /*----- Data types ---------------------------------------------------------*/
@@ -84,147 +84,147 @@ void initialise_monitor_handles(void) {
 }
 
 int _getpid(void) {
-	return 1;
+    return 1;
 }
 
 int _kill(int32_t pid, int32_t sig) {
-	errno = EINVAL;
-	return -1;
+    errno = EINVAL;
+    return -1;
 }
 
 void _exit(int32_t status) {
-	_kill(status, -1);
-	while (1) {
-		/* Make sure we hang here */
-	}
+    _kill(status, -1);
+    while (1) {
+        /* Make sure we hang here */
+    }
 }
 
 int _write(int fd, char *str, int len) {
 
-	uint8_t i = 0U;
+    uint8_t i = 0U;
 
-	if (str == NULL) {
-		return -1;
-	}
+    if (str == NULL) {
+        return -1;
+    }
 
-	for (i = 0U; i < len; i++) {
-		while (USART_GetFlagStatus(SYSCALL_USART, USART_FLAG_TC) == RESET) {
-		}
-		USART_SendData(SYSCALL_USART, (uint16_t) *str);
-		str++;
-	}
+    for (i = 0U; i < len; i++) {
+        while (USART_GetFlagStatus(SYSCALL_USART, USART_FLAG_TC) == RESET) {
+        }
+        USART_SendData(SYSCALL_USART, (uint16_t) *str);
+        str++;
+    }
 
-	return len;
+    return len;
 }
 
 caddr_t _sbrk(int32_t incr) {
 
-	extern uint32_t _Min_Heap_Size; /* _Min_Heap_Size symbol defined in the linker script. */
-	extern uint8_t end asm("end");
-	const uint8_t *max_heap = (uint8_t*) ((uint32_t) &end
-			+ (uint32_t) &_Min_Heap_Size);
-	static uint8_t *heap_end;
-	uint8_t *prev_heap_end;
+    extern uint32_t _Min_Heap_Size; /* _Min_Heap_Size symbol defined in the linker script. */
+    extern uint8_t end asm("end");
+    const uint8_t *max_heap = (uint8_t*) ((uint32_t) &end
+            + (uint32_t) &_Min_Heap_Size);
+    static uint8_t *heap_end;
+    uint8_t *prev_heap_end;
 
-	if (heap_end == 0) {
-		heap_end = &end;
-	}
+    if (heap_end == 0) {
+        heap_end = &end;
+    }
 
-	prev_heap_end = heap_end;
-	if ((heap_end + incr) > max_heap) {
+    prev_heap_end = heap_end;
+    if ((heap_end + incr) > max_heap) {
 /*
-		write(1, "Heap and stack collision\n", 25);
-		abort();
+        write(1, "Heap and stack collision\n", 25);
+        abort();
 */
-		errno = ENOMEM;
-		return (caddr_t) -1;
-	}
+        errno = ENOMEM;
+        return (caddr_t) -1;
+    }
 
-	heap_end += incr;
+    heap_end += incr;
 
-	return (caddr_t) prev_heap_end;
+    return (caddr_t) prev_heap_end;
 }
 
 int _close(int32_t file) {
-	return -1;
+    return -1;
 }
 
 int _fstat(int32_t file, struct stat *st) {
-	st->st_mode = S_IFCHR;
-	return 0;
+    st->st_mode = S_IFCHR;
+    return 0;
 }
 
 int _isatty(int32_t file) {
-	return 1;
+    return 1;
 }
 
 int _lseek(int32_t file, int32_t ptr, int32_t dir) {
-	return 0;
+    return 0;
 }
 
 int _read(int32_t file, uint8_t *ptr, int32_t len) {
 
-	uint32_t i = 0U;
-	uint16_t res = 0U;
+    uint32_t i = 0U;
+    uint16_t res = 0U;
 
-	if (ptr == NULL) {
-		return -1;
-	}
+    if (ptr == NULL) {
+        return -1;
+    }
 
-	for (i = 0U; i < len; i++) {
+    for (i = 0U; i < len; i++) {
 
-		if (USART_GetFlagStatus(SYSCALL_USART, USART_FLAG_RXNE) == SET) {
-			res = USART_ReceiveData(SYSCALL_USART);
-			if (res <= 0xFF) {
-				*ptr = (uint8_t) (res & 0xFF);
-				ptr++;
-			}
-		}
-		else {
-			break;
-		}
-	}
+        if (USART_GetFlagStatus(SYSCALL_USART, USART_FLAG_RXNE) == SET) {
+            res = USART_ReceiveData(SYSCALL_USART);
+            if (res <= 0xFF) {
+                *ptr = (uint8_t) (res & 0xFF);
+                ptr++;
+            }
+        }
+        else {
+            break;
+        }
+    }
 
-	return (int) i;
+    return (int) i;
 }
 
 int _open(uint8_t *path, int32_t flags, ...) {
-	/* Pretend like we always fail */
-	return -1;
+    /* Pretend like we always fail */
+    return -1;
 }
 
 int _wait(int32_t *status) {
-	errno = ECHILD;
-	return -1;
+    errno = ECHILD;
+    return -1;
 }
 
 int _unlink(uint8_t *name) {
-	errno = ENOENT;
-	return -1;
+    errno = ENOENT;
+    return -1;
 }
 
 int _times(struct tms *buf) {
-	return -1;
+    return -1;
 }
 
 int _stat(uint8_t *file, struct stat *st) {
-	st->st_mode = S_IFCHR;
-	return 0;
+    st->st_mode = S_IFCHR;
+    return 0;
 }
 
 int _link(uint8_t *old, uint8_t *new) {
-	errno = EMLINK;
-	return -1;
+    errno = EMLINK;
+    return -1;
 }
 
 int _fork(void) {
-	errno = EAGAIN;
-	return -1;
+    errno = EAGAIN;
+    return -1;
 }
 
 int _execve(uint8_t *name, uint8_t **argv, uint8_t **env) {
-	errno = ENOMEM;
-	return -1;
+    errno = ENOMEM;
+    return -1;
 }
 
 #ifdef __cplusplus

@@ -57,6 +57,7 @@ typedef struct game_s{
     player_t player[PLAYER_COUNT];
 
     enum{               // Current state of the game
+        init,
         prestart,
         running,
         ended

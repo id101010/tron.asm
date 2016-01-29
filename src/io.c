@@ -30,8 +30,6 @@ static volatile unsigned char* SWITCH = (volatile unsigned char*)0x6C000400;
 #define SQR3_SQ_SET               ((uint32_t)0x0000001F)  
 #define SMPR1_SMP_SET             ((uint32_t)0x00000007)  
 
-
-
 void pin_create(pin_t* pin, GPIO_TypeDef* GPIO, uint8_t pinnr, bool input) {
     GPIO_InitTypeDef gi;  // Create gpio init structure
     GPIO_StructInit(&gi); // Fill gpio init structure with defaults
@@ -82,40 +80,28 @@ void io_init(void){
     pin_create(&pin_t1, GPIOB, 15, true); // create pin_t1
     pin_create(&pin_t2, GPIOB, 14, true); // create pin_t2
     pin_create(&pin_t3, GPIOI, 0, true);  // create pin_t3
-
-    // ADC Init
     
     //Enable the peripheral clock of GPIOB
-    //This has been already done in the startup code
-    //Page 239/1718 of "RM0090 Reference Reference Manual (October 2014)"
     RCC->AHB1ENR |= RCC_AHB1Periph_GPIOB;
     //Choose the working mode of PB0 with the GPIO port mode register
-    //Page 279/1718 of "RM0090 Reference Reference Manual (October 2014)"
     GPIOB->MODER &= ~GPIO_MODER_MODER0;
     GPIOB->MODER |=  GPIO_Mode_AN;
     //Configure the GPIO port pull-up/pull-down register for PB0
     //Page 282/1718 of "RM0090 Reference Reference Manual (October 2014)"
     GPIOB->PUPDR &= ~GPIO_PUPDR_PUPDR0;
     GPIOB->PUPDR |=  GPIO_PuPd_UP;
-
     //Initialize the ADC
     //Enable the peripheral clock of the ADC
-    //Page 245/1718 of "RM0090 Reference Reference Manual (October 2014)"
     RCC->APB2ENR |= RCC_APB2Periph_ADC;
     //Configure ADC1: scan conversion mode and resolution
     //Set SCAN bit according to ADC_ScanConvMode value
     //Set RES bit according to ADC_Resolution value
-    // Page 416/1718 of "RM0090 Reference Reference Manual (October 2014)"
     ADC1->CR1 = ADC_Resolution_10b;
     // Configure ADC1: regular channel sequence length
     // Set L bits according to ADC_NbrOfConversion value
-    // Page 422/1718 of "RM0090 Reference Reference Manual (October 2014)"
     ADC1->SQR1 = 0;
     // Set the ADON bit to enable the ADC
-    // Page 418/1718 of "RM0090 Reference Reference Manual (October 2014)"
     ADC1->CR2 = ADC_CR2_ADON;
-    
-
 }
 
 void io_process(void) {
@@ -158,8 +144,6 @@ uint16_t read_adc(){
     
     return value;
 }
-
-
 
 uint8_t read_switches() {
     *LED=*SWITCH;

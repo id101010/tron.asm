@@ -27,6 +27,10 @@
 #define TG_FIELD_LEFT                 5
 #define TG_FIELD_RIGHT                5
 #define TG_FIELD_START_OFFSET         10
+#define TG_END_TOP                    50
+#define TG_END_BOTTOM                 30
+#define TG_END_LEFT                   30
+#define TG_END_RIGHT                  30
 #define TG_HEADER_TIME_X              5
 #define TG_HEADER_TIME_Y              3
 #define TG_HEADER_PLAYER_X            100

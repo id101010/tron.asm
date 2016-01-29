@@ -503,7 +503,7 @@ bool game_step_ended(game_t* game) {
                         "Game over!");
     LCD_DisplayStringXY(TG_END_LEFT + TG_START_FONT_OFFSET_Y, 
                         TG_END_TOP + TG_START_FONT_OFFSET_Y + 20, 
-                        "Press S0 to restart.");
+                        "Press T0 to restart.");
     LCD_SetBackColor(GUI_COLOR_BLACK);
     LCD_SetFont(&font_5x8);
 

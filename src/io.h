@@ -34,6 +34,11 @@ bool io_button_has_edge(uint8_t btnnumber);
 uint16_t read_adc();
 
 
+#define ADC_MASK 0x3FF
+#define ADC_MAX 0x3A0
+#define ADC_TOLERANCE 0x08
+
+
 /**
  *   @brief Read the values of the 8 switches
  *

@@ -27,6 +27,10 @@ static volatile uint8_t edg = 0;
 static volatile unsigned char* LED = (volatile unsigned char*)0x6C000200;
 static volatile unsigned char* SWITCH = (volatile unsigned char*)0x6C000400;
 
+#define SQR3_SQ_SET               ((uint32_t)0x0000001F)  
+#define SMPR1_SMP_SET             ((uint32_t)0x00000007)  
+
+
 
 void pin_create(pin_t* pin, GPIO_TypeDef* GPIO, uint8_t pinnr, bool input) {
     GPIO_InitTypeDef gi;  // Create gpio init structure
@@ -80,7 +84,7 @@ void io_init(void){
     pin_create(&pin_t3, GPIOI, 0, true);  // create pin_t3
 
     // ADC Init
-    /*
+    
     //Enable the peripheral clock of GPIOB
     //This has been already done in the startup code
     //Page 239/1718 of "RM0090 Reference Reference Manual (October 2014)"
@@ -110,7 +114,7 @@ void io_init(void){
     // Set the ADON bit to enable the ADC
     // Page 418/1718 of "RM0090 Reference Reference Manual (October 2014)"
     ADC1->CR2 = ADC_CR2_ADON;
-    */
+    
 
 }
 
@@ -137,7 +141,7 @@ bool io_button_has_edge(uint8_t btnnumber) {
 
 uint16_t read_adc(){
     uint16_t value = 0;
-    /*
+    
     // Specify the sample time for the conversion
     ADC1->SMPR2 &= SMPR1_SMP_SET           << (3 * ADC_Channel_8);
     ADC1->SMPR2 |= ADC_SampleTime_15Cycles << (3 * ADC_Channel_8);
@@ -150,8 +154,8 @@ uint16_t read_adc(){
     while( (ADC1->SR & ADC_FLAG_EOC) == 0 );
     // Read the value
     value = ADC1->DR;
-    value &= 0x03FF;
-    */
+    value &= ADC_MASK;
+    
     return value;
 }
 

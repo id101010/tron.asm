@@ -17,7 +17,7 @@ void game_init(game_t* game, uint16_t ticks_per_sec) {
     
     // struct init
     game->state=prestart;
-    game->ticks_per_pixel = SPEED_DEFAULT;
+    game->ticks_per_pixel = SPEED_SLOW;
     game->ticks_leftover = 0;
     game->ticks_per_sec = ticks_per_sec;
     game->time = 0;
@@ -275,7 +275,7 @@ bool game_step_prestart(game_t* game) {
     //Draw bounding box of gamespeed bar
     LCD_DrawRect( TG_START_COL2_X, 
                   TG_START_Y + PLAYER_COUNT*(TG_START_BLOCK_HEIGHT+TG_START_BLOCK_SPACING), 
-                  TG_START_COL2_X, 
+                  TG_START_COL2_WIDTH, 
                   TG_START_BLOCK_HEIGHT,
                   GUI_COLOR_WHITE);
 
@@ -291,39 +291,63 @@ bool game_step_prestart(game_t* game) {
 
     uint8_t switches_old = 0;
     uint16_t adc_old =0;
-    uint16_t player1_color=0, player2_color=0;
+    uint16_t player1_color=0, player2_color=0,game_speed=0;
     bool first = true; 
     
     while(!io_button_has_edge(BTN_START)) { //As long as nobody presses the start button
         uint8_t switches = read_switches(); //read current switches value
         uint16_t adc = read_adc(); //read current adc value
-        
-        if(switches!=switches_old || first) { //switch values changed or we are in the first loop
-            game_get_color(switches,&player1_color,&player2_color); //calculate colors from switch value
-            LCD_DrawRectF(  TG_START_COL2_X,
-                            TG_START_Y,
-                            TG_START_COL2_X,
-                            TG_START_BLOCK_HEIGHT,
-                            player1_color);
-            LCD_DrawRectF(  TG_START_COL2_X,
-                            TG_START_Y + TG_START_BLOCK_HEIGHT + TG_START_BLOCK_SPACING,
-                            TG_START_COL2_X,
-                            TG_START_BLOCK_HEIGHT,
-                            player2_color);
+        if(adc>ADC_MAX) { //adc value exeeds maximum
+            adc = ADC_MAX; //set to maximum 
         }
 
-        if(adc!=adc_old || first) { //adc value changed or we are in the first loop
-            uint8_t bar_width = (TG_START_COL2_X -2)*50/100; //TODO: use adc value  
+        if(switches!=switches_old || first) { //switch values changed or we are in the first loop
+            game_get_color(switches,&player1_color,&player2_color); //calculate colors from switch value
+            //Draw player1 color
+            LCD_DrawRectF(  TG_START_COL2_X,
+                            TG_START_Y,
+                            TG_START_COL2_WIDTH,
+                            TG_START_BLOCK_HEIGHT,
+                            player1_color);
+            //Draw player 2 color
+            LCD_DrawRectF(  TG_START_COL2_X,
+                            TG_START_Y + TG_START_BLOCK_HEIGHT + TG_START_BLOCK_SPACING,
+                            TG_START_COL2_WIDTH,
+                            TG_START_BLOCK_HEIGHT,
+                            player2_color);
+            switches_old = switches; //save switch state, to detect edge 
+        }
+
+        if(abs( (int16_t) adc - adc_old ) > ADC_TOLERANCE || first) { //adc value changed quite a bit or we are in the first loop
+            uint8_t bar_width = (TG_START_COL2_WIDTH -2)*adc/ADC_MAX;
+            game_speed =  (ADC_MAX-adc)*(SPEED_SLOW-SPEED_FAST)/ADC_MAX + SPEED_FAST;
+
+
+            //Draw background part of bar
+            LCD_DrawRectF(TG_START_COL2_X + 1 + bar_width, 
+                          TG_START_Y + PLAYER_COUNT*(TG_START_BLOCK_HEIGHT+TG_START_BLOCK_SPACING) + 1, 
+                          TG_START_COL2_WIDTH - 2 - bar_width,
+                          TG_START_BLOCK_HEIGHT-2,
+                          GUI_COLOR_BLACK);
+            //Draw foreground part of bar
             LCD_DrawRectF( TG_START_COL2_X + 1, 
                           TG_START_Y + PLAYER_COUNT*(TG_START_BLOCK_HEIGHT+TG_START_BLOCK_SPACING) + 1, 
                           bar_width,
-                          TG_START_BLOCK_HEIGHT-2,
+                          TG_START_BLOCK_HEIGHT - 2,
                           GUI_COLOR_BLUE);
+            
+            //For debug purposes    
+            /*static char buf[16]; // Text buffer
+            LCD_SetTextColor(GUI_COLOR_WHITE);
+            sprintf(buf, "speed: %02d", game_speed);
+            LCD_DisplayStringXY(TG_START_COL2_X + TG_START_COL2_WIDTH + TG_START_FONT_OFFSET_Y, 
+                                TG_START_Y + TG_START_FONT_OFFSET_Y + PLAYER_COUNT*(TG_START_BLOCK_HEIGHT+TG_START_BLOCK_SPACING) + 1, 
+                                buf );*/
+            
+            
+            adc_old = adc; //save old adc value, to detect change
         }
 
-        //save "old" values, to detect changes later (above^^)
-        adc_old = adc;
-        switches_old = switches; 
         first = false; // we're no longer in the first loop
     }
 
@@ -350,7 +374,7 @@ bool game_step_prestart(game_t* game) {
                 player2_color,
                 left);
     
-    
+    game->ticks_per_pixel = game_speed;
     game->state = running; // Switch the game state to running
     game->time = 0; // Reset the game time
 

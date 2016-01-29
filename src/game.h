@@ -11,9 +11,8 @@
 #define PLAYER_WIDTH    0   // Don't change
 
 // Speed definitions
-#define SPEED_SLOW      10
-#define SPEED_FAST      1
-#define SPEED_DEFAULT   (SPEED_FAST)
+#define SPEED_SLOW      75
+#define SPEED_FAST      5
 
 // Button definitions
 #define BTN_START               0
@@ -54,7 +53,7 @@ typedef struct game_s{
     uint16_t time;              // Seconds since game start
     uint16_t ticks_per_sec;     // Number of game ticks per second
     int8_t winner_id;           // Player who won the previous round
-    uint8_t ticks_per_pixel;    // Number of pixels you a player moves per tick
+    uint8_t ticks_per_pixel;    // Ticks that are needed to move the player by one pixel
     player_t player[PLAYER_COUNT];
 
     enum{               // Current state of the game
@@ -64,8 +63,8 @@ typedef struct game_s{
     } state;
 
     //private section ahead
-    uint8_t ticks_leftover;     // Ticks left to complete a second
-    uint8_t ticks_sum_sec;      // Used to calculate the game time
+    uint16_t ticks_leftover;     // Ticks which were not used in the last round, to advance the pixels
+    uint16_t ticks_sum_sec;      // Ticks which were not used in the last round, to advance the seconds
 } game_t;
 
 /**

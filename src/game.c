@@ -11,9 +11,6 @@ void game_init(game_t* game, uint16_t ticks_per_sec) {
     // gpio init
     io_init();
 
-    // adc init
-    init_adc();
-    
     // lcd init
     LCD_Init();
     LCD_Clear(GUI_COLOR_BLACK);
@@ -74,22 +71,22 @@ bool game_check_boundary_collision(game_t* game, player_t* player, uint8_t pixel
     // Check boundary collision
     switch(player->direction){
         case up:
-            if((int16_t)(player->position.y) - pixels <= TFT_GAME_FIELD_TOP){
+            if((int16_t)(player->position.y) - pixels <= TG_FIELD_TOP){
                 return true; // Collision at top boundary
             }
             break;
         case down:
-            if((int16_t)(player->position.y) + pixels >= (TFT_HEIGHT - TFT_GAME_FIELD_BOTTOM - 1)){
+            if((int16_t)(player->position.y) + pixels >= (TFT_HEIGHT - TG_FIELD_BOTTOM - 1)){
                 return true; // Collision at bottom boundary
             }
             break;
         case left:
-            if((int16_t)(player->position.x) - pixels <= TFT_GAME_FIELD_LEFT){
+            if((int16_t)(player->position.x) - pixels <= TG_FIELD_LEFT){
                 return true; // Collision at left boundary
             }
             break;
         case right:
-            if((int16_t)(player->position.x) + pixels >= (TFT_WIDTH - TFT_GAME_FIELD_RIGHT - 1)){
+            if((int16_t)(player->position.x) + pixels >= (TFT_WIDTH - TG_FIELD_RIGHT - 1)){
                 return true; // Collision at right boundary
             }
             break;
@@ -210,131 +207,247 @@ bool game_player_update(game_t* game, player_t* player, uint8_t pixels){
     return state_changed; // return state
 }
 
+void game_get_color(uint16_t confbits, uint16_t* player1_color, uint16_t* player2_color) {
+
+    //we have 4 bits per player color, we use 1 bit for red, 2 for green, 1 for blue
+    //Display color is 16 bit: 5bits red (15-11), 6 green (10-5), 5 blue (4-0)
+    *player1_color =0;
+    *player2_color =0;
+    uint16_t temp;
+    if(confbits&0x80) { //player1, red1
+        *player1_color|=0xF800; //set full red
+    }
+    temp = (confbits&0x60) << 1; //move the player1, green1-2 bits to the highest bit position (bits 7-6)
+    *player1_color|= temp << 3; //move green into the right position (bits 10-9) 
+    if(confbits&0x10) { //player 1, blue1
+       *player1_color|=0x1F; //set full blue
+    }
+    if(*player1_color==0) {
+        *player1_color= (3 << 11) | (7 << 5) | (3 << 0); //set color to gray (2 bits active per color, or 3 bits for green)
+    }
+
+
+    if(confbits&0x08) { //player2, red1
+        *player2_color|=0xF800; //set full red
+    }
+    temp = (confbits&0x06) << 5; //move the player2, green1-2 bits to the highest bit position (bits 7-6)
+    *player2_color|= temp << 3; //move green into the right position (bits 10-9) 
+    if(confbits&0x01) { //player 2, blue1
+        *player2_color|=0x1F; //set full blue
+    }
+
+    if(*player2_color==0) {
+        *player2_color= (3 << 11) | (7 << 5) | (3 << 0); //set color to gray (2 bits active per color, or 3 bits for green)
+    }
+}
+
+static const char* texts [] = {
+    "Config Instructions:",
+    "* Change the player colors using the switches S7-S0",
+    "* Use the poti to change the game speed",
+    "* Press T0 to start the game",
+    "",
+    "Game Instructions:",
+    "* Player 1 Keys: T3 and T2",
+    "* Player 2 Keys: T1 and T0",
+    "* Stay alive!",
+    NULL
+};
+
+
+bool game_step_prestart(game_t* game) {
+
+    //Draw "Player x: Color" Strings
+    for(int i=0; i<PLAYER_COUNT; i++) {
+        static char buf[16]; // Text buffer
+        LCD_SetTextColor(GUI_COLOR_WHITE);
+        sprintf(buf, "Player%d: Color", (i+1)); // Print the color and the players name to the text buffer
+        LCD_DisplayStringXY(TG_START_X, 
+                            TG_START_Y + TG_START_FONT_OFFSET_Y + i* (TG_START_BLOCK_HEIGHT + TG_START_BLOCK_SPACING),
+                            buf );
+    }
+    
+    //Draw "Game Speed:" String
+    LCD_DisplayStringXY(TG_START_X, 
+                        TG_START_Y + PLAYER_COUNT*(TG_START_BLOCK_HEIGHT+TG_START_BLOCK_SPACING) + TG_START_FONT_OFFSET_Y, 
+                        "Game Speed:");
+
+    //Draw bounding box of gamespeed bar
+    LCD_DrawRect( TG_START_COL2_X, 
+                  TG_START_Y + PLAYER_COUNT*(TG_START_BLOCK_HEIGHT+TG_START_BLOCK_SPACING), 
+                  TG_START_COL2_X, 
+                  TG_START_BLOCK_HEIGHT,
+                  GUI_COLOR_WHITE);
+
+    //Draw Info texts
+    int i=0;
+    while(texts[i]!=NULL) {
+        LCD_DisplayStringXY(TG_START_X, 
+                            TG_START_Y + (PLAYER_COUNT + 1)*(TG_START_BLOCK_HEIGHT+TG_START_BLOCK_SPACING) + TG_START_FONT_OFFSET_Y + i * TG_START_FONT_HEIGHT, 
+                            texts[i]);
+        i++;
+    }
+
+
+    uint8_t switches_old = 0;
+    uint16_t adc_old =0;
+    uint16_t player1_color=0, player2_color=0;
+    bool first = true; 
+    
+    while(!io_button_has_edge(BTN_START)) { //As long as nobody presses the start button
+        uint8_t switches = read_switches(); //read current switches value
+        uint16_t adc = read_adc(); //read current adc value
+        
+        if(switches!=switches_old || first) { //switch values changed or we are in the first loop
+            game_get_color(switches,&player1_color,&player2_color); //calculate colors from switch value
+            LCD_DrawRectF(  TG_START_COL2_X,
+                            TG_START_Y,
+                            TG_START_COL2_X,
+                            TG_START_BLOCK_HEIGHT,
+                            player1_color);
+            LCD_DrawRectF(  TG_START_COL2_X,
+                            TG_START_Y + TG_START_BLOCK_HEIGHT + TG_START_BLOCK_SPACING,
+                            TG_START_COL2_X,
+                            TG_START_BLOCK_HEIGHT,
+                            player2_color);
+        }
+
+        if(adc!=adc_old || first) { //adc value changed or we are in the first loop
+            uint8_t bar_width = (TG_START_COL2_X -2)*50/100; //TODO: use adc value  
+            LCD_DrawRectF( TG_START_COL2_X + 1, 
+                          TG_START_Y + PLAYER_COUNT*(TG_START_BLOCK_HEIGHT+TG_START_BLOCK_SPACING) + 1, 
+                          bar_width,
+                          TG_START_BLOCK_HEIGHT-2,
+                          GUI_COLOR_BLUE);
+        }
+
+        //save "old" values, to detect changes later (above^^)
+        adc_old = adc;
+        switches_old = switches; 
+        first = false; // we're no longer in the first loop
+    }
+
+    // Setup the two players
+    //Init player 1
+    player_init(&(game->player[0]), // Fill object of player 1
+                BTN_PLAYER_1_LEFT,  // Left-button of player1
+                BTN_PLAYER_1_RIGHT, // Right-button of player 1
+                (point_t) { //Start point of player 1
+                    .x=(TG_FIELD_START_OFFSET + TG_FIELD_LEFT), // x start coordinate
+                    .y=(((TFT_HEIGHT - TG_FIELD_TOP - TG_FIELD_BOTTOM) / 2) + TG_FIELD_TOP) // y start coordinate
+                }, 
+                player1_color, // color of player 1
+                right); // initial moving direction of player 2
+
+    //Init player 2
+    player_init(&(game->player[1]),
+                BTN_PLAYER_2_LEFT,
+                BTN_PLAYER_2_RIGHT,
+                (point_t) {
+                    .x=(TFT_WIDTH - 1 - TG_FIELD_RIGHT - TG_FIELD_START_OFFSET), // x start coordinate
+                    .y=(((TFT_HEIGHT - TG_FIELD_TOP - TG_FIELD_BOTTOM) / 2) + TG_FIELD_TOP) // y start coordinate
+                }, 
+                player2_color,
+                left);
+    
+    
+    game->state = running; // Switch the game state to running
+    game->time = 0; // Reset the game time
+
+    LCD_Clear(GUI_COLOR_BLACK); // Clear the background
+
+    // Draw the game boundary
+    LCD_DrawRect(TG_FIELD_LEFT, // left top x
+                TG_FIELD_TOP, // left top y
+                (TFT_WIDTH - TG_FIELD_LEFT - TG_FIELD_RIGHT - 1), // right bottom x
+                (TFT_HEIGHT - TG_FIELD_TOP - TG_FIELD_BOTTOM - 1), // right bottom y
+                GUI_COLOR_WHITE); // Color of the boundary
+
+    LCD_SetTextColor(GUI_COLOR_WHITE); // Reset color to white
+    LCD_DisplayStringXY(TG_HEADER_TIME_X, TG_HEADER_TIME_Y, "Time: 0:00"); // Draw the zero-time
+
+    for(int i = 0; i < PLAYER_COUNT; i++){ // For each player print its name and its state
+        static char buf[16]; // Text buffer
+        LCD_SetTextColor(game->player[i].color); // Set the text color according to the players color
+        sprintf(buf, "Player%d: alive", (i+1)); // Print the state and the players name to the text buffer
+        LCD_DisplayStringXY(TG_HEADER_PLAYER_X+i*TG_HEADER_PLAYER_WIDTH, TG_HEADER_PLAYER_Y, buf); // Print everything
+    }
+
+    return true;
+}
+
+bool game_step_running(game_t* game, uint64_t delta_time)
+
+{
+    uint16_t ticks;
+    uint16_t pixels = 0;
+
+    if(delta_time) {
+        ticks = game->ticks_leftover + delta_time; // Calculate the number of past ticks
+        pixels = ticks / game->ticks_per_pixel; // Calculate the number of pixels moved in the calculated amount of ticks
+        game->ticks_leftover = ticks % game->ticks_per_pixel; // Calculate the number of ticks which are left
+        game->ticks_sum_sec += delta_time; // Add the delta_time to the tick sum which is used to calculate the game time
+
+        uint16_t new_seconds = game->ticks_sum_sec / game->ticks_per_sec; // Calculate number of seconds from past ticks
+
+        game->time += new_seconds;  // Add the new amount of seconds to the game time
+        game->ticks_sum_sec = game->ticks_sum_sec % game->ticks_per_sec; // Limit the tick sum used to calculate the amount of seconds
+
+        if(new_seconds > 0){    // Print the time if it got updated
+            static char buf[15]; // Textbufer
+            sprintf(buf, "Time: %d:%02d", (game->time / 60), (game->time % 60)); // Format time and paste it to the textbuffer
+            LCD_SetTextColor(GUI_COLOR_WHITE); // Set the text color to white
+            LCD_DisplayStringXY(TG_HEADER_TIME_X, TG_HEADER_TIME_Y, buf); // Print the time
+        }
+    }
+
+    bool all_players_dead = true; // Assume all players are dead ;-)
+
+    // For each player do ...
+    for(int i = 0; i < PLAYER_COUNT; i++) { 
+        player_t* player = &(game->player[i]);  // Copy an object of the current player
+
+        if(game_player_update(game, player, pixels)) { // Update player and execute if, when player state has changed
+            static char buf[15]; // Buffer to hold the text output
+            const char* state_text = "alive"; // Assume that the player is alive
+            
+            if(player->state==dead) { // If the player is dead change the text
+                state_text="dead";
+            }
+
+            sprintf(buf, "Player%d: %s ", (i+1),state_text); // Format and paste the status to the buffer
+            LCD_SetTextColor(player->color); // Set the text color to the players color
+            LCD_DisplayStringXY(TG_HEADER_PLAYER_X+i*TG_HEADER_PLAYER_WIDTH, TG_HEADER_PLAYER_Y, buf); // Print the status
+        }
+
+        if(player->state!=dead) { // If the current player still lives not all players are dead ...
+            all_players_dead=false;
+        }
+    }
+
+    if(all_players_dead) {  // End the game if all players are dead
+        game->state=ended; // Set the state to ended
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool game_step_ended(game_t* game) {
+    while(!io_button_has_edge(BTN_START)); // Wait for the start button to be pressed again
+    LCD_Clear(GUI_COLOR_BLACK); // Clear the background
+    game->state= prestart; // Set the state to prestart
+    return true;
+}
+
 bool game_step(game_t* game, uint64_t delta_time) { // Calculate the next game step
-    static long l = 0;
 
     switch(game->state) {
         case prestart: // If the game is in prestart state
-            // Draw welcome screen
-            LCD_DrawRectF(10,10,100,50,GUI_COLOR_BLUE);
-
-            // TODO: Read color of player 1
-            uint16_t player1_color = get_player_color(&(game->player[0]), true);
-
-            // TODO: Read color of player 2
-            uint16_t player2_color = get_player_color(&(game->player[1]), false);
-            
-            // TODO: Read potentiometer and set game speed accordingly
-            uint16_t game_speed = read_adc();
-
-            // Setup the two players
-            player_init(&(game->player[0]), // Player object to fill
-                        BTN_PLAYER_1_LEFT,  // Left-button
-                        BTN_PLAYER_1_RIGHT, // Right-button
-                        (point_t){
-                            .x=(TFT_GAME_FIELD_START_OFFSET + TFT_GAME_FIELD_LEFT), // x start coordinate
-                            .y=(((TFT_HEIGHT - TFT_GAME_FIELD_TOP - TFT_GAME_FIELD_BOTTOM) / 2) + TFT_GAME_FIELD_TOP) // y start coordinate
-                        }, 
-                        GUI_COLOR_BLUE, // color
-                        right); // default moving direction
-
-            player_init(&(game->player[1]), // Player object to fill
-                        BTN_PLAYER_2_LEFT,  // Left-button
-                        BTN_PLAYER_2_RIGHT, // Right-button
-                        (point_t){
-                            .x=(TFT_WIDTH - 1 - TFT_GAME_FIELD_RIGHT - TFT_GAME_FIELD_START_OFFSET), // x start coordinate
-                            .y=(((TFT_HEIGHT - TFT_GAME_FIELD_TOP - TFT_GAME_FIELD_BOTTOM) / 2) + TFT_GAME_FIELD_TOP) // y start coordinate
-                        }, 
-                        GUI_COLOR_RED, // color
-                        left); // default moving direction 
-            
-            // Wait on player to press start
-            while(!io_button_has_edge(BTN_START));
-            
-            game->state = running; // Switch the game state to running
-            game->time = 0; // Reset the game time
-
-            LCD_Clear(GUI_COLOR_BLACK); // Clear the background
-
-            // Draw the game boundary
-            LCD_DrawRect(TFT_GAME_FIELD_LEFT, // left top x
-                        TFT_GAME_FIELD_TOP, // left top y
-                        (TFT_WIDTH - TFT_GAME_FIELD_LEFT - TFT_GAME_FIELD_RIGHT - 1), // right bottom x
-                        (TFT_HEIGHT - TFT_GAME_FIELD_TOP - TFT_GAME_FIELD_BOTTOM - 1), // right bottom y
-                        GUI_COLOR_WHITE); // Color of the boundary
-
-            LCD_SetTextColor(GUI_COLOR_WHITE); // Reset color to white
-            LCD_DisplayStringXY(TFT_GAME_HEADER_TIME_X, TFT_GAME_HEADER_TIME_Y, "Time: 0:00"); // Draw the zero-time
-
-            for(int i = 0; i < PLAYER_COUNT; i++){ // For each player print its name and its state
-                static char buf[16]; // Text buffer
-                LCD_SetTextColor(game->player[i].color); // Set the text color according to the players color
-                sprintf(buf, "Player%d: alive", (i+1)); // Print the state and the players name to the text buffer
-                LCD_DisplayStringXY(TFT_GAME_HEADER_PLAYER_X+i*TFT_GAME_HEADER_PLAYER_WIDTH, TFT_GAME_HEADER_PLAYER_Y, buf); // Print everything
-            }
-
-            return true;
-
+            return game_step_prestart(game);
         case running:
-        {
-            uint16_t ticks;
-            uint16_t pixels = 0;
- 
-            if(delta_time) {
-                ticks = game->ticks_leftover + delta_time; // Calculate the number of past ticks
-                pixels = ticks / game->ticks_per_pixel; // Calculate the number of pixels moved in the calculated amount of ticks
-                game->ticks_leftover = ticks % game->ticks_per_pixel; // Calculate the number of ticks which are left
-                game->ticks_sum_sec += delta_time; // Add the delta_time to the tick sum which is used to calculate the game time
-
-                uint16_t new_seconds = game->ticks_sum_sec / game->ticks_per_sec; // Calculate number of seconds from past ticks
-
-                game->time += new_seconds;  // Add the new amount of seconds to the game time
-                game->ticks_sum_sec = game->ticks_sum_sec % game->ticks_per_sec; // Limit the tick sum used to calculate the amount of seconds
-
-                if(new_seconds > 0){    // Print the time if it got updated
-                    static char buf[15]; // Textbufer
-                    sprintf(buf, "Time: %d:%02d", (game->time / 60), (game->time % 60)); // Format time and paste it to the textbuffer
-                    LCD_SetTextColor(GUI_COLOR_WHITE); // Set the text color to white
-                    LCD_DisplayStringXY(TFT_GAME_HEADER_TIME_X, TFT_GAME_HEADER_TIME_Y, buf); // Print the time
-                }
-            }
-
-            bool all_players_dead = true; // Assume all players are dead ;-)
-
-            // For each player do ...
-            for(int i = 0; i < PLAYER_COUNT; i++) { 
-                player_t* player = &(game->player[i]);  // Copy an object of the current player
-
-                if(game_player_update(game, player, pixels)) { // Update player and execute if, when player state has changed
-                    static char buf[15]; // Buffer to hold the text output
-                    const char* state_text = "alive"; // Assume that the player is alive
-                    
-                    if(player->state==dead) { // If the player is dead change the text
-                        state_text="dead";
-                    }
-
-                    sprintf(buf, "Player%d: %s ", (i+1),state_text); // Format and paste the status to the buffer
-                    LCD_SetTextColor(player->color); // Set the text color to the players color
-                    LCD_DisplayStringXY(TFT_GAME_HEADER_PLAYER_X+i*TFT_GAME_HEADER_PLAYER_WIDTH, TFT_GAME_HEADER_PLAYER_Y, buf); // Print the status
-                }
-
-                if(player->state!=dead) { // If the current player still lives not all players are dead ...
-                    all_players_dead=false;
-                }
-            }
-
-            if(all_players_dead) {  // End the game if all players are dead
-                game->state=ended; // Set the state to ended
-                return true;
-            } else {
-                return false;
-            }
-        }
-
+            return game_step_running(game,delta_time);
         case ended:
-            while(!io_button_has_edge(BTN_START)); // Wait for the start button to be pressed again
-            LCD_Clear(GUI_COLOR_BLACK); // Clear the background
-            game->state= prestart; // Set the state to prestart
-        return true;
+            return game_step_ended(game);
     }
 }

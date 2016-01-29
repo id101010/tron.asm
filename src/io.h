@@ -27,26 +27,19 @@ void io_process(void);
 bool io_button_has_edge(uint8_t btnnumber);
 
 /**
- *   @brief Initialize the analog/digital converter in order to read the potentiometer.
- */
-void init_adc();
-
-/**
  *   @brief Read a value from the analog/digital converter.
  *
  *   @return            ADC_value as an unsigned int16
  */
 uint16_t read_adc();
 
+
 /**
- *   @brief Uses buttons s0-7 to determine the coler of the player. 
- *          Player1 is represented by the bits s0-3.
- *          Player2 is represented by the bits s4-s7.
+ *   @brief Read the values of the 8 switches
  *
- *   @param player Playerobject
- *   @param first_player Specify first or second player
- *   @return Color value for the according player
+ *   @return Returns the state of the switches, one bit per switch, high active
  */
-uint16_t get_player_color(player_t* player, bool first_player);
+uint8_t read_switches();
+
 
 #endif /* IO_H */

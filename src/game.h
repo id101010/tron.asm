@@ -23,16 +23,26 @@
 #define BTN_PLAYER_2_RIGHT      0
 
 // Display definitions
-#define TFT_GAME_FIELD_TOP              20
-#define TFT_GAME_FIELD_BOTTOM           5
-#define TFT_GAME_FIELD_LEFT             5
-#define TFT_GAME_FIELD_RIGHT            5
-#define TFT_GAME_FIELD_START_OFFSET     10
-#define TFT_GAME_HEADER_TIME_X          5
-#define TFT_GAME_HEADER_TIME_Y          3
-#define TFT_GAME_HEADER_PLAYER_X        100
-#define TFT_GAME_HEADER_PLAYER_Y        3
-#define TFT_GAME_HEADER_PLAYER_WIDTH    100
+#define TG_FIELD_TOP                  20
+#define TG_FIELD_BOTTOM               5
+#define TG_FIELD_LEFT                 5
+#define TG_FIELD_RIGHT                5
+#define TG_FIELD_START_OFFSET         10
+#define TG_HEADER_TIME_X              5
+#define TG_HEADER_TIME_Y              3
+#define TG_HEADER_PLAYER_X            100
+#define TG_HEADER_PLAYER_Y            3
+#define TG_HEADER_PLAYER_WIDTH        100
+#define TG_START_X                    10
+#define TG_START_Y                    10
+#define TG_START_BLOCK_HEIGHT         20
+#define TG_START_BLOCK_SPACING        5
+#define TG_START_FONT_OFFSET_Y        5
+#define TG_START_FONT_HEIGHT          10
+#define TG_START_COL2_X               90
+#define TG_START_COL2_WIDTH           100
+
+
 
 /**
  * @brief Game data type which contains all game data and players.

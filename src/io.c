@@ -19,17 +19,14 @@ static pin_t pin_t0;
 static pin_t pin_t1;
 static pin_t pin_t2;
 static pin_t pin_t3;
-static pin_t pin_s0;
-static pin_t pin_s1;
-static pin_t pin_s2;
-static pin_t pin_s3;
-static pin_t pin_s4;
-static pin_t pin_s5;
-static pin_t pin_s6;
-static pin_t pin_s7;
 static uint8_t new = 0;
 static uint8_t old = 0;
 static volatile uint8_t edg = 0;
+
+//Memory mapped IO's
+static volatile unsigned char* LED = (volatile unsigned char*)0x6C000200;
+static volatile unsigned char* SWITCH = (volatile unsigned char*)0x6C000400;
+
 
 void pin_create(pin_t* pin, GPIO_TypeDef* GPIO, uint8_t pinnr, bool input) {
     GPIO_InitTypeDef gi;  // Create gpio init structure
@@ -82,41 +79,7 @@ void io_init(void){
     pin_create(&pin_t2, GPIOB, 14, true); // create pin_t2
     pin_create(&pin_t3, GPIOI, 0, true);  // create pin_t3
 
-    // TODO: Create color choosing pins
-    /*pin_create(&pin_s0, GPIO, , true); // create pin_t0
-    pin_create(&pin_s1, GPIO, , true); // create pin_t1
-    pin_create(&pin_s2, GPIO, , true); // create pin_t2
-    pin_create(&pin_s3, GPIO, , true); // create pin_t3
-    pin_create(&pin_s4, GPIO, , true); // create pin_t0
-    pin_create(&pin_s5, GPIO, , true); // create pin_t1
-    pin_create(&pin_s6, GPIO, , true); // create pin_t2
-    pin_create(&pin_s7, GPIO, , true); // create pin_t3*/
-
-
-}
-
-void io_process(void) {
-    new = pin_get(&pin_t0)      |
-          pin_get(&pin_t1) << 1 |
-          pin_get(&pin_t2) << 2 |
-          pin_get(&pin_t3) << 3;
-
-    edg |= (new ^ old) & new;    // detect positive edge
-    old = new;
-}
-
-bool io_button_has_edge(uint8_t btnnumber) {
-    uint8_t bm      = (1 << btnnumber); // create bitmask
-    bool status     = ((edg & bm) > 0); // check if button is pressed
-    
-    if(status){
-        edg &= ~bm; // clear edge bit
-    }
-
-    return status;
-}
-
-void init_adc(){
+    // ADC Init
     /*
     //Enable the peripheral clock of GPIOB
     //This has been already done in the startup code
@@ -148,6 +111,28 @@ void init_adc(){
     // Page 418/1718 of "RM0090 Reference Reference Manual (October 2014)"
     ADC1->CR2 = ADC_CR2_ADON;
     */
+
+}
+
+void io_process(void) {
+    new = pin_get(&pin_t0)      |
+          pin_get(&pin_t1) << 1 |
+          pin_get(&pin_t2) << 2 |
+          pin_get(&pin_t3) << 3;
+
+    edg |= (new ^ old) & new;    // detect positive edge
+    old = new;
+}
+
+bool io_button_has_edge(uint8_t btnnumber) {
+    uint8_t bm      = (1 << btnnumber); // create bitmask
+    bool status     = ((edg & bm) > 0); // check if button is pressed
+    
+    if(status){
+        edg &= ~bm; // clear edge bit
+    }
+
+    return status;
 }
 
 uint16_t read_adc(){
@@ -170,12 +155,9 @@ uint16_t read_adc(){
     return value;
 }
 
-uint16_t get_player_color(player_t* player, bool first_player){
-    if(!first_player){
-        // Read bit 0-3 and calculate color
-    }else{
-        // Read but 4-7 and calculate color
-    }
 
-    return 0;
+
+uint8_t read_switches() {
+    *LED=*SWITCH;
+    return *SWITCH;
 }

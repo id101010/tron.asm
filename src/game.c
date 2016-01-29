@@ -418,6 +418,13 @@ bool game_step_prestart(game_t* game) {
         LCD_DisplayStringXY(TG_HEADER_PLAYER_X+i*TG_HEADER_PLAYER_WIDTH, TG_HEADER_PLAYER_Y, buf); // Print everything
     }
 
+
+    //Read all "cached" edges, to prevent direction changes on start
+    io_button_has_edge(BTN_PLAYER_1_LEFT);
+    io_button_has_edge(BTN_PLAYER_1_RIGHT);
+    io_button_has_edge(BTN_PLAYER_2_LEFT);
+    io_button_has_edge(BTN_PLAYER_2_RIGHT);
+
     return true;
 }
 

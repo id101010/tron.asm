@@ -15,8 +15,10 @@ void player_init(player_t* player, uint8_t btn_left, uint8_t btn_right,
 }
 
 
-void player_append_position(player_t* player, point_t point) {
+bool player_append_position(player_t* player, point_t point) {
     if(player->num_positions < max_positions) {
         player->past_positions[player->num_positions++] = point;
+        return true;
     } 
+    return false;
 } 

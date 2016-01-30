@@ -169,11 +169,14 @@ bool game_player_update(game_t* game, player_t* player, uint8_t pixels){
 
     // Check if player is alive
     if(player->state != alive){
-        return state_changed; // If player is dead return state
+        return false; //Dont continue executing with the rest of the function. State has not changed (false)
     }
     // Change direction
     if(direction_change) {
-        player_append_position(player,player->position); // Append new position if direction has changed
+        if(!player_append_position(player,player->position)) { // If appending new position failed
+            player->state = dead; // Set player state to dead, even if he didn't made an error
+            return true; //state changed
+        }
     }
 
     if(pixels) {
@@ -189,7 +192,7 @@ bool game_player_update(game_t* game, player_t* player, uint8_t pixels){
                 player->position.y+=pixels;
                 LCD_DrawRectF(  player->position.x,
                                 last_point.y,
-                                PLAYER_WIDTH,
+                                0,
                                 player->position.y - last_point.y,
                                 player->color);
                 break;
@@ -198,14 +201,14 @@ bool game_player_update(game_t* game, player_t* player, uint8_t pixels){
                 LCD_DrawRectF(  player->position.x,
                                 player->position.y,
                                 last_point.x -player->position.x,
-                                PLAYER_WIDTH,
+                                0,
                                 player->color);
                 break;
             case up: // render up
                 player->position.y-=pixels;
                 LCD_DrawRectF(  player->position.x,
                                 player->position.y,
-                                PLAYER_WIDTH,
+                                0,
                                 last_point.y - player->position.y,
                                 player->color);
                 break;
@@ -214,7 +217,7 @@ bool game_player_update(game_t* game, player_t* player, uint8_t pixels){
                 LCD_DrawRectF(  last_point.x,
                                 player->position.y,
                                 player->position.x - last_point.x,
-                                PLAYER_WIDTH,
+                                0,
                                 player->color);
                 break;
         }
@@ -484,25 +487,27 @@ bool game_step_running(game_t* game, uint64_t delta_time)
 bool game_step_ended(game_t* game) {
 
     // Kill screen
+    // Border of Kill Screen (White, 1px)
     LCD_DrawRect(TG_END_LEFT, // left top x
                 TG_END_TOP, // left top y
-                (TFT_WIDTH - TG_END_LEFT - TG_END_RIGHT - 1), // right bottom x
-                (TFT_HEIGHT - TG_END_TOP - TG_END_BOTTOM - 1), // right bottom y
+                (TFT_WIDTH - TG_END_LEFT - TG_END_RIGHT - 1), // width of the rect 
+                (TFT_HEIGHT - TG_END_TOP - TG_END_BOTTOM - 1), //height of the rect
                 GUI_COLOR_WHITE); // Color of the boundary
-    LCD_DrawRectF(TG_END_LEFT + 1, // left top x
-                TG_END_TOP + 1, // left top y
-                (TFT_WIDTH - TG_END_LEFT - TG_END_RIGHT - 3), // right bottom x
-                (TFT_HEIGHT - TG_END_TOP - TG_END_BOTTOM - 3), // right bottom y
-                GUI_COLOR_DARK_GREY); // Color of the boundary
+    //Filling of Kill Screen (Gray)
+    LCD_DrawRectF(TG_END_LEFT + 1,
+                TG_END_TOP + 1,
+                (TFT_WIDTH - TG_END_LEFT - TG_END_RIGHT - 3),
+                (TFT_HEIGHT - TG_END_TOP - TG_END_BOTTOM - 3),
+                GUI_COLOR_DARK_GREY); // Color of the filling
 
     LCD_SetTextColor(GUI_COLOR_BLACK);
     LCD_SetBackColor(GUI_COLOR_DARK_GREY);
     LCD_SetFont(&font_9x15B);
-    LCD_DisplayStringXY(TG_END_LEFT + TG_START_FONT_OFFSET_Y, 
-                        TG_END_TOP + TG_START_FONT_OFFSET_Y, 
+    LCD_DisplayStringXY(TG_END_LEFT + TG_END_FONT_OFFSET, 
+                        TG_END_TOP + TG_END_FONT_OFFSET, 
                         "Game over!");
-    LCD_DisplayStringXY(TG_END_LEFT + TG_START_FONT_OFFSET_Y, 
-                        TG_END_TOP + TG_START_FONT_OFFSET_Y + 20, 
+    LCD_DisplayStringXY(TG_END_LEFT + TG_END_FONT_OFFSET, 
+                        TG_END_TOP + TG_END_FONT_OFFSET + TG_END_FONT_HEIGHT, 
                         "Press T0 to restart.");
     LCD_SetBackColor(GUI_COLOR_BLACK);
     LCD_SetFont(&font_5x8);

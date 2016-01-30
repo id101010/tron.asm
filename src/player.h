@@ -3,8 +3,9 @@
 
 #include<stdlib.h>
 #include<stdint.h>
+#include<stdbool.h>
 
-#define max_positions 320 // Maximum of points a player object is holding.
+#define max_positions 500 // Maximum of points a player object is holding.
 
 /**
  * @brief Direction data type, used to specify the direction when moving.
@@ -61,7 +62,8 @@ void player_init(player_t* player, uint8_t btn_left, uint8_t btn_right, point_t 
  *
  *  @param player       Player object
  *  @param point        Point to add to the player object
+ *  @return             true on success
  */
-void player_append_position(player_t* player, point_t point);
+bool player_append_position(player_t* player, point_t point);
 
 #endif /* PLAYER_H */

@@ -258,6 +258,11 @@ bool game_player_update(game_t* game, player_t* player, uint8_t pixels){
                                 player->color);
                 break;
         }
+
+        if(player->state==dead) {
+            //Draw beacon around player pos, if player died in this round
+            LCD_DrawCircle(player->position.x, player->position.y,TG_PLAYER_BEACON_RADIUS,GUI_COLOR_WHITE);
+        }
     }
 
     return state_changed; // return state

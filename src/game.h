@@ -42,6 +42,8 @@
 #define TG_HEADER_PLAYER_Y            3     //y position of the Player state-texts in the game-header
 #define TG_HEADER_PLAYER_WIDTH        100   //width of one Player state-text
 
+#define TG_PLAYER_BEACON_RADIUS       4     //Radius of the circle/beacon that is drawn around the players head if he dies.
+
 //---- Section 2.2  - During an ended game (kill screen) ------------------------------------------------
 //Margins of the kill screen to the display border
 #define TG_END_TOP                    180

@@ -40,48 +40,81 @@ void game_init(game_t* game, uint16_t ticks_per_sec) {
     game->ticks_sum_sec = 0;
 }
 
+//Checks if the player head (+pixels in moving direction) collides  with the line with the points start & end
 bool game_check_line_collision(player_t* player, point_t start, point_t end, uint8_t pixels){
 
     bool line_is_horizontal = (start.y == end.y);
     bool player_is_horizontal = (player->direction == left || player->direction == right);
 
-    if(line_is_horizontal == player_is_horizontal){ // if player moves parallel to the line, there is no point in checking
-        return false; // no collision possible because parallel moving
-    }
+    if(line_is_horizontal == player_is_horizontal){ // if player moves parallel to the line
 
-    if(!player_is_horizontal && (player->position.x < min(start.x, end.x) || player->position.x > max(start.x, end.x))){
-        return false; // if player is passing by horizontally, no collision possible
-    } 
-    
-    if(player_is_horizontal && (player->position.y < min(start.y, end.y) || player->position.y > max(start.y, end.y))){
-        return false; // if player is passing by vertically, no collision possible
-    }
+        if(player_is_horizontal && start.y != player->position.y ) {
+            return false; // player is not on the same height as the line, no collision possible
+        }
 
-    switch(player->direction){
-        case up:
-               if(player->position.y > start.y && ((int16_t)player->position.y - pixels) <= start.y) {
-                   return true; // going up and hitting a line segment
-               }
-            break;
-        case down:
-               if(player->position.y < start.y && ((int16_t)player->position.y + pixels) >= start.y) {
-                   return true; // going down and hitting a line segment
-               }
-            break;
-        case left:
-               if(player->position.x > start.x && ((int16_t)player->position.x - pixels) <= start.x) {
-                   return true; // going left and hitting a line segment
-               }
-            break;
-        case right:
-               if(player->position.x < start.x && ((int16_t)player->position.x + pixels) >= start.x) {
-                   return true; // going right and hitting a line segment
-               }
-            break;
+        if(!player_is_horizontal && start.x != player->position.x ) {
+            return false; // player is not on the same column as the line, no collision possible
+        }
+
+        switch(player->direction){
+            case up:
+                   if(((int16_t)player->position.y - pixels) <= max(start.y,end.y) && ((int16_t)player->position.y - pixels) >= min(start.y,end.y)) {
+                       return true; // player head is inside of line
+                   }
+                break;
+            case down:
+                   if(((int16_t)player->position.y + pixels) >= min(start.y,end.y) && ((int16_t)player->position.y + pixels) <= max(start.y,end.y)) {
+                       return true;
+                   }
+                break;
+            case left:
+                   if(((int16_t)player->position.x - pixels) <= max(start.x,end.x) && ((int16_t)player->position.x - pixels) >= min(start.x,end.x)) {
+                       return true;
+                   }
+                break;
+            case right:
+                   if(((int16_t)player->position.x + pixels) >= min(start.x,end.x) && ((int16_t)player->position.x + pixels) <= max(start.x,end.x)) {
+                       return true; 
+                   }
+                break;
+        }
+    } else { //Player moves antiparalell to the line
+
+        if(!player_is_horizontal && (player->position.x < min(start.x, end.x) || player->position.x > max(start.x, end.x))){
+            return false; // if player is passing by horizontally, no collision possible
+        } 
+        
+        if(player_is_horizontal && (player->position.y < min(start.y, end.y) || player->position.y > max(start.y, end.y))){
+            return false; // if player is passing by vertically, no collision possible
+        }
+
+        switch(player->direction){
+            case up:
+                   if(player->position.y > start.y && ((int16_t)player->position.y - pixels) <= start.y) {
+                       return true; // going up and hitting a line segment
+                   }
+                break;
+            case down:
+                   if(player->position.y < start.y && ((int16_t)player->position.y + pixels) >= start.y) {
+                       return true; // going down and hitting a line segment
+                   }
+                break;
+            case left:
+                   if(player->position.x > start.x && ((int16_t)player->position.x - pixels) <= start.x) {
+                       return true; // going left and hitting a line segment
+                   }
+                break;
+            case right:
+                   if(player->position.x < start.x && ((int16_t)player->position.x + pixels) >= start.x) {
+                       return true; // going right and hitting a line segment
+                   }
+                break;
+        }
     }
     return false;
 }
 
+//Check if the player head (+pixels in moving direction) collides with the game field boundary
 bool game_check_boundary_collision(game_t* game, player_t* player, uint8_t pixels){
     
     // Check boundary collision
@@ -111,6 +144,7 @@ bool game_check_boundary_collision(game_t* game, player_t* player, uint8_t pixel
     return false;
 }
 
+//Check if the player (+pixels in moving direction) collides with any other player (including itself)
 bool game_check_player_collision(game_t* game, player_t* player, uint8_t pixels){
     // Check for collisions with players (including self)
     for(int i = 0; i < PLAYER_COUNT; i++){
@@ -138,7 +172,8 @@ bool game_check_player_collision(game_t* game, player_t* player, uint8_t pixels)
     return false;
 }
 
-bool game_check_collision(game_t* game, player_t* player, uint8_t pixels){ // Check boundary and player collisions
+//Check if the player (+pixels in moving direction) collides either with other players (including self) or the game field boundary
+bool game_check_collision(game_t* game, player_t* player, uint8_t pixels) { 
 
     // Check for collisions with boundarys
     if(game_check_boundary_collision(game, player, pixels)){
@@ -153,6 +188,8 @@ bool game_check_collision(game_t* game, player_t* player, uint8_t pixels){ // Ch
     return false; // no collision!
 }
 
+//Update the player state and draw the player. The player head will be moved by "pixels" in moving direction.
+//Returns true if the player state has changed
 bool game_player_update(game_t* game, player_t* player, uint8_t pixels){
 
     bool direction_change = false;
@@ -226,6 +263,7 @@ bool game_player_update(game_t* game, player_t* player, uint8_t pixels){
     return state_changed; // return state
 }
 
+//Calculates two colors out of the 16 bits, passed in confbits.
 void game_get_color(uint16_t confbits, uint16_t* player1_color, uint16_t* player2_color) {
 
     //we have 4 bits per player color, we use 1 bit for red, 2 for green, 1 for blue
@@ -260,6 +298,8 @@ void game_get_color(uint16_t confbits, uint16_t* player1_color, uint16_t* player
     }
 }
 
+//Calculates one step of the game, when the game is in the init state
+//Returns true if the function was blocking, and deltaTicks should be reset 
 bool game_step_init(game_t* game) {
     
     //Draw welcome bitmap
@@ -276,6 +316,8 @@ bool game_step_init(game_t* game) {
     return true;
 }
 
+//Calculates one step of the game, when the game is in the prestart state
+//Returns true if the function was blocking, and deltaTicks should be reset 
 bool game_step_prestart(game_t* game) {
 
     //Draw "Player x: Color" Strings
@@ -427,6 +469,8 @@ bool game_step_prestart(game_t* game) {
     return true;
 }
 
+//Calculates one step of the game, when the game is in the running state
+//Returns true if the function was blocking, and deltaTicks should be reset 
 bool game_step_running(game_t* game, uint64_t delta_time)
 
 {
@@ -484,6 +528,8 @@ bool game_step_running(game_t* game, uint64_t delta_time)
     }
 }
 
+//Calculates one step of the game, when the game is in the ended state
+//Returns true if the function was blocking, and deltaTicks should be reset 
 bool game_step_ended(game_t* game) {
 
     // Kill screen

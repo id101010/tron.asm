@@ -185,7 +185,6 @@ read_adc:
     LDR r1, =0xFEFEFE;
     MOV r0, #3*ADC_Channel_8 //r0 = 3 * ADC_Channel_8
 
-
     //ADC1->SMPR2 &= SMPR1_SMP_SET           << (3 * ADC_Channel_8);
     LDR r3, [r1, #OFFSET_SMPR2] //r3 = ADC1->SMPR2 
     MOV r2, #SMPR1_SMP_SET
@@ -204,13 +203,33 @@ read_adc:
     BIC r3, r3, r2 // r3 &= ~r2
     
     //ADC1->SQR3  |= ADC_Channel_8;
+    MOV r2, #ADC_Channel_8
+    ORR r3, r3, r2 // r3 |= r2
+    STR r3, [r1, #OFFSET_SQR3] // ADC1->SQR3 = r3
+
     //ADC1->CR2 |= ADC_CR2_SWSTART;   
+    LDR r3, [r1, #OFFSET_CR2] // r3 = ADC1->CR2
+    MOV r2, #ADC_CR2_SWSTART
+    ORR r3, r3, r2 // r3 |= r2
+    STR r3, [r1, #OFFSET_CR2] // ADC1->CR2 = r3
+
     //while( (ADC1->SR & ADC_FLAG_EOC) == 0 );
+read_adc_loop:
+    LDR r3, [r1, #OFFSET_SR] //r3 = ADC1->SR
+    MOV r2, #ADC_FLAG_EOC
+    TST r3, r2 //flags = r3 & r2
+    BEQ read_adc_loop //jump back to loop beginning while (r3&r2) == 0
+
     //uint16_t value = 0;
     //value = ADC1->DR;
+    LDRH r0, [r1, #OFFSET_DR] //r0 = ADC1->DR
+
     //value &= ADC_MASK;
+    MOV r2, #ADC_MASK
+    AND r0, r0, r2 // r0 &= r2
     
-    //return value; 
+    //return value;
+    MOV pc, lr
 
 end_read_adc:
 

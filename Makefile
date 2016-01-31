@@ -37,7 +37,7 @@ LDFLAGS+=-Wl,--gc-sections -Wl,--defsym=malloc_getpagesize_P=0x1000
 #Finding Input files
 CFILES=$(shell find $(SOURCE_DIR) -name '*.c')
 #CFILES=$(notdir $(wildcard $(SOURCE_DIR)/*.c))
-SFILES=$(SOURCE_DIR)/startup.s
+SFILES=$(shell find $(SOURCE_DIR) -name '*.s')
 
 #Generate corresponding obj names
 SOBJS=$(SFILES:.s=.o)

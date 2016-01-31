@@ -28,33 +28,43 @@ static volatile unsigned char* SWITCH = (volatile unsigned char*)0x6C000400;
 #define SMPR1_SMP_SET             ((uint32_t)0x00000007)  
 
 void pin_create(pin_t* pin, GPIO_TypeDef* GPIO, uint8_t pinnr) {
-    GPIO_InitTypeDef gi;  // Create gpio init structure
-    GPIO_StructInit(&gi); // Fill gpio init structure with defaults
+    //GPIO_InitTypeDef gi;  // Create gpio init structure
+    //GPIO_StructInit(&gi); // Fill gpio init structure with defaults
+    //gi.GPIO_Pin = 1 << pinnr; // create bitmask out of pin number
+    
+    //gi.GPIO_Mode    = GPIO_Mode_IN; // Set mode to input
+    GPIO->MODER &=~ ( 3 << (pinnr*2)); //Clear the 2 bits (mode)
+    GPIO->MODER |= GPIO_Mode_IN << (pinnr*2); //Set the correct bits for mode
 
-    gi.GPIO_Pin = 1 << pinnr; // create bitmask out of pin number
+    //gi.GPIO_OType   = GPIO_OType_OD; // Set type to open drain
+    GPIO->OTYPER &=~ (1 << (pinnr*2)); //Clear the bit (otype)
+    GPIO->OTYPER |= GPIO_OType_OD <<(pinnr*2); //set the correct bit for otype
+    
+    //gi.GPIO_PuPd    = GPIO_PuPd_UP; // Set a pullup
+    GPIO->PUPDR &=~  (3 <<(pinnr*2)); //clear the 2 bits (pp/od)
+    GPIO->PUPDR |= GPIO_PuPd_UP <<(pinnr*2); //set the correct bits for pp/od
 
-    gi.GPIO_Mode    = GPIO_Mode_IN;     // Set mode to input
-    gi.GPIO_OType   = GPIO_OType_OD;    // Set type to open drain
-    gi.GPIO_PuPd    = GPIO_PuPd_UP;     // Set a pullup
-
-    GPIO_Init(GPIO,&gi); // Update the GPIO configuration
+    //GPIO_Init(GPIO,&gi); // Update the GPIO configuration
 
     pin->GPIO=GPIO; // Set the gpiopin in the pin structure
     pin->pinmask=0x01<<pinnr; // Insert the pinmask
 }
 
 bool pin_get(pin_t* pin) {
-     return GPIO_ReadInputDataBit(pin->GPIO,pin->pinmask); // Read its value
+     //return GPIO_ReadInputDataBit(pin->GPIO,pin->pinmask); // Read its value
+     return ((pin->GPIO->IDR & pin->pinmask) > 0);
 }
 
 void io_init(void){
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC,ENABLE); // Enable gpio clock source
+    //RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC,ENABLE); // Enable gpio clock source
+    RCC->AHB1ENR|= RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOI;
     // Create player pins
     pin_create(&pin_t0, GPIOC, 7);  // create pin_t0
     pin_create(&pin_t1, GPIOB, 15); // create pin_t1
     pin_create(&pin_t2, GPIOB, 14); // create pin_t2
     pin_create(&pin_t3, GPIOI, 0);  // create pin_t3
-    
+
+    //ADC Stuff ahead 
     //Enable the peripheral clock of GPIOB
     RCC->AHB1ENR |= RCC_AHB1Periph_GPIOB;
     //Choose the working mode of PB0 with the GPIO port mode register

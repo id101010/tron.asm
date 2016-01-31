@@ -7,7 +7,7 @@
 
 #define BYTES_PER_PIXEL 2
 
-uint16_t bitmap_draw(   unsigned int width, unsigned int height,
+int8_t bitmap_draw(    unsigned int width, unsigned int height,
                         unsigned int bytes_per_pixel,
                         const unsigned char *pixel_data){
     

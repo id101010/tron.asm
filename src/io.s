@@ -11,9 +11,9 @@ typedef struct pin_s {
 .set OFFSET_PIN_PINMASK, 4
 
     
-//--------Local Functions ------------------ 
+//--------Functions ------------------ 
+//See the doxygen comments in the headerfiles for the parameter documentation of the following functions
 .text
-
 
 //void pin_create(pin_t* pin, GPIO_TypeDef* GPIO, uint8_t pinnr)
 .global pin_create
@@ -28,7 +28,7 @@ pin_create:
     .set GPIO_PuPd_UP, 1
     .set GPIO_OType_OD, 1
 
-    PUSH {r4,r5,r6,lr}
+    PUSH {r4,r5,r6,lr} //Save registers
 
     LSL r4, r2, #1 //r4 = pinnr*2
     MOV r5, #3 //r5 = 3
@@ -72,7 +72,7 @@ pin_create:
     //pin->pinmask=0x01<<pinnr; // Insert the pinmask
     STRH r5, [r0, #OFFSET_PIN_PINMASK]
 
-    POP {r4, r5, r6, pc}
+    POP {r4, r5, r6, pc} //Restore registers
 
 end_pin_create:
 
@@ -84,7 +84,9 @@ end_pin_create:
 pin_get:
          
    .set GPIO_IDR, 0x10
-    //return ((pin->GPIO->IDR & pin->pinmask) > 0);
+
+    //C-Code (one liner) return ((pin->GPIO->IDR & pin->pinmask) > 0);
+   
    LDR r1, [r0, #OFFSET_PIN_GPIO] //r1 = pin->GPIO
    LDR r1, [r1,#GPIO_IDR] // r1 = pin->GPIO->IDR 
    LDRH r2, [r0, #OFFSET_PIN_PINMASK] // r2 = pin->pinmask
@@ -93,13 +95,14 @@ pin_get:
 
    MOV r0, #1 //return 1
    MOV pc, lr
+
 pin_get_eq:
    MOV r0, #0 //return 0
    MOV pc, lr
+
 end_pin_get:
 
 
-//-------Global Functions-------------------
 //void adc_init(void);
 .global adc_init
 

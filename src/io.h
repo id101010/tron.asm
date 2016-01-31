@@ -34,8 +34,13 @@ bool io_button_has_edge(uint8_t btnnumber);
 uint16_t read_adc();
 
 
-#define ADC_MASK 0x3FF
+//Mask for the ADC value (to cut away bits which cannot be valid)
+#define ADC_MASK 0x3FF 
+
+//Value that should be threated as maximum
 #define ADC_MAX 0x3A0
+
+//Tolerance value. Changes below this value will be ignored.
 #define ADC_TOLERANCE 0x08
 
 

@@ -31,18 +31,21 @@
 #include "game.h"
 #include "uart.h"
 
+//Game Object, which contains the entire state of the game
+//Exchange this object via Uart, to have remote players
 game_t gameobj;
 
-uint64_t ticks;
-uint64_t lastTicks;
+volatile uint64_t ticks = 0; //Ticks since reset
+uint64_t lastTicks = 0; //Last tick
 
+//SysTick Handler that will be called several times per second (see TICKS_PER_SECOND). This is an interrupt.
 void SysTick_Handler() {
-    ticks++;
-    io_process();
+    ticks++; 
+    io_process(); //Process button presses
 }
 
-#define SYSCLK              168e6
-#define TICKS_PER_SECOND    1000
+#define SYSCLK              168e6 //System frequency
+#define TICKS_PER_SECOND    1000 //Number of SysTick interrupts that should occour ( = number of times SysTick_Handler calls per sec)
 
 int main(void)
 {
@@ -50,13 +53,14 @@ int main(void)
         while(1); //sleep forever
     }
 
-    game_init(&gameobj, TICKS_PER_SECOND);
+    game_init(&gameobj, TICKS_PER_SECOND); //Init game state
+
     while(1) {
         uint64_t curTicks = ticks;
-        if(game_step(&gameobj,curTicks-lastTicks)) { //calculate next game step, and pass it the delta time
-            lastTicks = ticks;
+        if(game_step(&gameobj,curTicks-lastTicks)) { //calculate next game step, and pass it the delta time. Returns true if function was blocking
+            lastTicks = ticks; //Save actual ticks
         } else {
-            lastTicks = curTicks;
+            lastTicks = curTicks; //Save ticks from before calling game_step
         }
     }
 

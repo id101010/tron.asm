@@ -13,40 +13,13 @@ typedef struct pin_s {
 .set OFFSET_PIN_GPIO, 0
 .set OFFSET_PIN_PINMASK, 4
 
-
-/*
-static pin_t pin_t0;
-static pin_t pin_t1;
-static pin_t pin_t2;
-static pin_t pin_t3;
-*/
-
-
-pin_t0: .word 0 //storage for GPIO ptr
-.hword 0 //storage for pinmask
-pin_t1: .word 0 //storage for GPIO ptr
-.hword 0
-pin_t2: .word 0 //storage for GPIO ptr
-.hword 0
-pin_t3: .word 0 //storage for GPIO ptr
-.hword 0
-
-/*
-static uint8_t new = 0;
-static uint8_t old = 0;
-static volatile uint8_t edg = 0;
-*/
-new: .byte 0
-old: .byte 0
-edg: .byte 0
-
-
     
 //--------Local Functions ------------------ 
 .text
 
 
 //void pin_create(pin_t* pin, GPIO_TypeDef* GPIO, uint8_t pinnr)
+.global pin_create
 
 //R0: address to pin struct, R1: address to GPIO, R2: pinnr (1 byte). No return value
 pin_create:
@@ -108,6 +81,7 @@ end_pin_create:
 
 
 //bool pin_get(pin_t* pin)
+.global pin_get
 
 //R0: address to pin struct. Return value in R0 (1 byte)
 pin_get:
@@ -118,74 +92,26 @@ pin_get:
    LDR r1, [r1,#GPIO_IDR] // r1 = pin->GPIO->IDR 
    LDRH r2, [r0, #OFFSET_PIN_PINMASK] // r2 = pin->pinmask
    TST r1, r2 // flags = r1 & r2
-   BEQ pin_get_1 //jump to pin_get_1 if r1 & r2 > 0
+   BEQ pin_get_eq //jump to pin_get_eq if (r1 & r2) == 0
 
-   MOV r0, #0 //return 0
-   MOV pc, lr
-pin_get_1:
    MOV r0, #1 //return 1
+   MOV pc, lr
+pin_get_eq:
+   MOV r0, #0 //return 0
    MOV pc, lr
 end_pin_get:
 
 
 //-------Global Functions-------------------
-//void io_init(void);
-.global io_init
+//void adc_init(void);
+.global adc_init
 
 //No Parameters, No Return value
-io_init:
-
-    //pin_create(&pin_t0, GPIOC, 7);  // create pin_t0
-    LDR r0, =#pin_t0
-    LDR r1, =0x40020800
-    MOV r2, #7
-    BL pin_create
-
-    //pin_create(&pin_t1, GPIOB, 15); // create pin_t1
-    LDR r0, =#pin_t1
-    LDR r1, =0x40020400
-    MOV r2, #15
-    BL pin_create
-
-    //pin_create(&pin_t2, GPIOB, 14); // create pin_t2
-    LDR r0, =#pin_t3
-    LDR r1, =0x40020400
-    MOV r2, #14
-    BL pin_create
-
-    //pin_create(&pin_t3, GPIOI, 0);  // create pin_t3
-    LDR r0, =#pin_t3
-    LDR r1, =0x40022000
-    MOV r2, #0
-    BL pin_create
-
-
-end_io_init:
-
-
-
-//void io_process(void)
-.global io_process
-
-//No Parameters, No Return value
-io_process:
+adc_init:
 
     //TODO: Implement
 
-end_io_process:
-
-
-
-//bool io_button_has_edge(uint8_t btnnumber)
-.global io_button_has_edge
-
-//R0: pin nr (1 byte), Return value in R0 (1 byte)
-io_button_has_edge:
-
-    //TODO: Implement
-
-end_io_button_has_edge:
-
+end_adc_init:
 
 
 //uint16_t read_adc()

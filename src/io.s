@@ -1,7 +1,4 @@
-//---------Local variables ----------------------
-.data
-
-
+//--------Local definitions ---------------------
 
 /*
 typedef struct pin_s {
@@ -108,8 +105,60 @@ end_pin_get:
 
 //No Parameters, No Return value
 adc_init:
+  
+    .set GPIO_MODER_MODER0, 3
+    .set GPIO_PUPDR_PUPDR0, 3
+    .set GPIO_Mode_AN, 3
+    .set RCC_APB2Periph_ADC, 0x100
+    .set ADC_Resolution_10b, 0x01000000
+    .set ADC_CR2_ADON, 1
+    .set OFFSET_CR1, 0x4
+    .set OFFSET_SQR1, 0x2c
+    .set OFFSET_CR2, 0x8
 
-    //TODO: Implement
+    LDR r1, =0x40020400 //r1 = GPIOB
+
+    //GPIOB->MODER &= ~GPIO_MODER_MODER0;
+    LDR r3, [r1, #OFFSET_MODR] //r3 = GPIOB->MODR 
+    MOV r2, #GPIO_MODER_MODER0 
+    BIC r3, r3, r2 //r3 &= ~GPIO_MODER_MODER0
+
+    //GPIOB->MODER |=  GPIO_Mode_AN;
+    MOV r2, #GPIO_Mode_AN 
+    ORR r3, r3, r2 //r3 |= GPIO_Mode_AN
+    STR r3, [r1, #OFFSET_MODR] //GPIOB->MODR = r3
+
+    //GPIOB->PUPDR &= ~GPIO_PUPDR_PUPDR0;
+    LDR r3, [r1, #OFFSET_PUPDR] //r3 = GPIOB->PUPDR 
+    MOV r2, #GPIO_PUPDR_PUPDR0
+    BIC r3, r3, r2 //r3 &= ~GPIO_PUPDR_PUPDR0
+
+    //GPIOB->PUPDR |=  GPIO_PuPd_UP;
+    MOV r2, #GPIO_PuPd_UP
+    ORR r3, r3, r2 //r3 |= GPIO_PuPd_UP 
+    STR r3, [r1, #OFFSET_PUPDR] //GPIOB->PUPDR = r3
+
+
+    //RCC->APB2ENR |= RCC_APB2Periph_ADC;
+    LDR r1, =0x40023844 //RCC base: 0x40023800, APB2ENR offset: 0x44
+    LDR r3, [r1] //r3 = RCC->APB2ENR 
+    LDR r2, =#RCC_APB2Periph_ADC 
+    ORR r3, r3, r2 //r3 |= RCC_APB2Periph_ADC
+    STR r3, [r1]
+      
+    //ADC1->CR1 = ADC_Resolution_10b;
+    LDR r1, =0x40012000 //Adc base adress 
+    LDR r2, =#ADC_Resolution_10b
+    STR r2, [r1, #OFFSET_CR1]
+    
+    //ADC1->SQR1 = 0;
+    MOV r2, #0
+    STR r2, [r1, #OFFSET_SQR1]
+
+    //ADC1->CR2 = ADC_CR2_ADON;
+    MOV r2, #ADC_CR2_ADON
+    STR r2, [r1, #OFFSET_CR2]
+
 
 end_adc_init:
 

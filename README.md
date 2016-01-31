@@ -17,6 +17,7 @@ The rest of it is written in the programming language c.
 - src/game.{c,h}      - Main game logic
 - src/main.c          - Systick handler and programm start
 - src/io.{s,h}        - IO functions implemented in assembly language
+- src/io_c.c          - High Level IO helpers written in c
 - src/player.{c,h}    - Implementation of the player object
 - src/startup.s       - Startup code
 - src/syscalls.c      - Syscall lowlevel functions (Atollic true studio)

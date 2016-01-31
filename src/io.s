@@ -31,6 +31,14 @@ pin_t2: .word 0 //storage for GPIO ptr
 pin_t3: .word 0 //storage for GPIO ptr
 .hword 0
 
+/*
+static uint8_t new = 0;
+static uint8_t old = 0;
+static volatile uint8_t edg = 0;
+*/
+new: .byte 0
+old: .byte 0
+edg: .byte 0
 
 
     
@@ -103,9 +111,20 @@ end_pin_create:
 
 //R0: address to pin struct. Return value in R0 (1 byte)
 pin_get:
+         
+   .set GPIO_IDR, 0x10
+    //return ((pin->GPIO->IDR & pin->pinmask) > 0);
+   LDR r1, [r0, #OFFSET_PIN_GPIO] //r1 = pin->GPIO
+   LDR r1, [r1,#GPIO_IDR] // r1 = pin->GPIO->IDR 
+   LDRH r2, [r0, #OFFSET_PIN_PINMASK] // r2 = pin->pinmask
+   TST r1, r2 // flags = r1 & r2
+   BEQ pin_get_1 //jump to pin_get_1 if r1 & r2 > 0
 
-    //TODO: Implement
-
+   MOV r0, #0 //return 0
+   MOV pc, lr
+pin_get_1:
+   MOV r0, #1 //return 1
+   MOV pc, lr
 end_pin_get:
 
 

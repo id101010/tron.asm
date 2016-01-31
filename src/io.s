@@ -169,20 +169,20 @@ end_adc_init:
 
 //No Parameters, Return value in R0 (halfword, 2bytes)
 read_adc:
-    .set OFFSET_SMPR2, 0
-    .set OFFSET_SQR3,0
-    .set OFFSET_SR,0
-    .set OFFSET_DR,0
-    .set ADC_Channel_8, 000000 
-    .set SMPR1_SMP_SET, 0
-    .set ADC_SampleTime_15Cycles,0
-    .set SQR3_SQ_SET, 0
-    .set ADC_CR2_SWSTART, 0
-    .set ADC_FLAG_EOC, 0
-    .set ADC_MASK, 0
+    .set OFFSET_SMPR2, 0x10
+    .set OFFSET_SQR3, 0x34
+    .set OFFSET_SR, 0
+    .set OFFSET_DR, 0x4C
+    .set ADC_Channel_8, 8 
+    .set SMPR1_SMP_SET, 0x07
+    .set ADC_SampleTime_15Cycles, 1
+    .set SQR3_SQ_SET, 0x1F
+    .set ADC_CR2_SWSTART, 0x40000000
+    .set ADC_FLAG_EOC, 0x2
+    .set ADC_MASK, 0x3FF
 
     
-    LDR r1, =0xFEFEFE;
+    LDR r1, =0x40012000; //ADC base address
     MOV r0, #3*ADC_Channel_8 //r0 = 3 * ADC_Channel_8
 
     //ADC1->SMPR2 &= SMPR1_SMP_SET           << (3 * ADC_Channel_8);
@@ -209,7 +209,7 @@ read_adc:
 
     //ADC1->CR2 |= ADC_CR2_SWSTART;   
     LDR r3, [r1, #OFFSET_CR2] // r3 = ADC1->CR2
-    MOV r2, #ADC_CR2_SWSTART
+    LDR r2, =#ADC_CR2_SWSTART
     ORR r3, r3, r2 // r3 |= r2
     STR r3, [r1, #OFFSET_CR2] // ADC1->CR2 = r3
 
@@ -222,10 +222,11 @@ read_adc_loop:
 
     //uint16_t value = 0;
     //value = ADC1->DR;
-    LDRH r0, [r1, #OFFSET_DR] //r0 = ADC1->DR
+    MOV r2, #OFFSET_DR
+    LDRH r0, [r1, r2] //r0 = ADC1->DR
 
     //value &= ADC_MASK;
-    MOV r2, #ADC_MASK
+    LDR r2, =#ADC_MASK
     AND r0, r0, r2 // r0 &= r2
     
     //return value;

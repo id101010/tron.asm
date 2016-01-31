@@ -241,10 +241,14 @@ end_read_adc:
 //No Parameters, Return value in R0 (1 byte)
 read_switches:
 
-    //TODO: Implement
+    .set ADDR_LEDS, 0x6C000200
+    .set ADDR_SWITCHES, 0x6C000400
+
+    LDR r1, =ADDR_SWITCHES  // load switch address to r1
+    LDR r0, [r1]            // load switch value to r0
+    LDR r2, =ADDR_LEDS      // load led address to r1
+    STR r0, [r2]            // store switch value at led address
+
+    MOV pc, lr
 
 end_read_switches:
-
-
-
-

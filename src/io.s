@@ -159,6 +159,7 @@ adc_init:
     MOV r2, #ADC_CR2_ADON
     STR r2, [r1, #OFFSET_CR2]
 
+    MOV pc, lr
 
 end_adc_init:
 
@@ -168,8 +169,48 @@ end_adc_init:
 
 //No Parameters, Return value in R0 (halfword, 2bytes)
 read_adc:
+    .set OFFSET_SMPR2, 0
+    .set OFFSET_SQR3,0
+    .set OFFSET_SR,0
+    .set OFFSET_DR,0
+    .set ADC_Channel_8, 000000 
+    .set SMPR1_SMP_SET, 0
+    .set ADC_SampleTime_15Cycles,0
+    .set SQR3_SQ_SET, 0
+    .set ADC_CR2_SWSTART, 0
+    .set ADC_FLAG_EOC, 0
+    .set ADC_MASK, 0
 
-    //TODO: Implement
+    
+    LDR r1, =0xFEFEFE;
+    MOV r0, #3*ADC_Channel_8 //r0 = 3 * ADC_Channel_8
+
+
+    //ADC1->SMPR2 &= SMPR1_SMP_SET           << (3 * ADC_Channel_8);
+    LDR r3, [r1, #OFFSET_SMPR2] //r3 = ADC1->SMPR2 
+    MOV r2, #SMPR1_SMP_SET
+    LSL r2, r2, r0 // r2 = SMPR1_SMP_SET  << (3 * ADC_Channel_8)
+    BIC r3, r3, r2 // r3 &= ~r2
+
+    //ADC1->SMPR2 |= ADC_SampleTime_15Cycles << (3 * ADC_Channel_8);
+    MOV r2, #ADC_SampleTime_15Cycles
+    LSL r2, r2, r0 // r2 = ADC_SampleTime_15Cycles << (3 * ADC_Channel_8)
+    ORR r3, r3, r2 // r3 |= r2
+    STR r3, [r1, #OFFSET_SMPR2] // ADC1->SMPR2 = r3 
+
+    //ADC1->SQR3  &= ~SQR3_SQ_SET;
+    LDR r3, [r1, #OFFSET_SQR3] // r3 = ADC1->SQR3
+    MOV r2, #SQR3_SQ_SET
+    BIC r3, r3, r2 // r3 &= ~r2
+    
+    //ADC1->SQR3  |= ADC_Channel_8;
+    //ADC1->CR2 |= ADC_CR2_SWSTART;   
+    //while( (ADC1->SR & ADC_FLAG_EOC) == 0 );
+    //uint16_t value = 0;
+    //value = ADC1->DR;
+    //value &= ADC_MASK;
+    
+    //return value; 
 
 end_read_adc:
 

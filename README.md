@@ -8,19 +8,19 @@ The rest of it is written in the programming language c.
 
 ## Project Structure
 
-img/*               - GIMP Project for the welcome screen
-libs/*              - STM32f4xx libraries
-utils/*             - Useful scripts 
+- img/*               - GIMP Project for the welcome screen
+- libs/*              - STM32f4xx libraries
+- utils/*             - Useful scripts 
 
-src/bitmap.h        - Contains a welcome screen
-src/draw.{c.h}      - Draw a bitmap
-src/game.{c,h}      - Main game logic
-src/main.c          - Systick handler and programm start
-src/io.{s,h}        - IO functions implemented in assembly language
-src/player.{c,h}    - Implementation of the player object
-src/startup.s       - Startup code
-src/syscalls.c      - Syscall lowlevel functions (Atollic true studio)
-src/io.c.unused     - Old io-fuctions implemented in c programming language.
+- src/bitmap.h        - Contains a welcome screen
+- src/draw.{c.h}      - Draw a bitmap
+- src/game.{c,h}      - Main game logic
+- src/main.c          - Systick handler and programm start
+- src/io.{s,h}        - IO functions implemented in assembly language
+- src/player.{c,h}    - Implementation of the player object
+- src/startup.s       - Startup code
+- src/syscalls.c      - Syscall lowlevel functions (Atollic true studio)
+- src/io.c.unused     - Old io-fuctions implemented in c programming language.
 
 ## How to Build and flash
 

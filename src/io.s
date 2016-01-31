@@ -11,7 +11,7 @@ typedef struct pin_s {
 */
 
 .set OFFSET_PIN_GPIO, 0
-.set OFFSET_PIN_PINMASK, 8
+.set OFFSET_PIN_PINMASK, 4
 
 
 /*
@@ -22,13 +22,13 @@ static pin_t pin_t3;
 */
 
 
-pin0: .space 8, 0 //storage for GPIO ptr
+pin_t0: .word 0 //storage for GPIO ptr
 .hword 0 //storage for pinmask
-pin1: .space 8, 0
+pin_t1: .word 0 //storage for GPIO ptr
 .hword 0
-pin2: .space 8, 0
+pin_t2: .word 0 //storage for GPIO ptr
 .hword 0
-pin3: .space 8, 0
+pin_t3: .word 0 //storage for GPIO ptr
 .hword 0
 
 
@@ -50,32 +50,34 @@ pin_create:
     .set GPIO_PuPd_UP, 1
     .set GPIO_OType_OD, 1
 
+    PUSH {r4,r5,r6,lr}
+
     LSL r4, r2, #1 //r4 = pinnr*2
     MOV r5, #3 //r5 = 3
     LSL r5, r5, r4 //r5 = 3 << (pinnr*2)
 
     //GPIO->MODER &=~ ( 3 << (pinnr*2)); //Clear the 2 bits (mode)
-    LDRB r3, [r1, #OFFSET_MODR] //r3 = GPIO->MODR 
+    LDR r3, [r1, #OFFSET_MODR] //r3 = GPIO->MODR 
     BIC r3, r3, r5 //r3 &= ~r5
 
     //GPIO->MODER |= GPIO_Mode_IN << (pinnr*2); //Set the correct bits for mode
     MOV r6, #GPIO_MODE_IN
     LSL r6, r6, r4 //r5 = GPIO_MODE_IN << (pinnr*2) 
     ORR r3, r3, r6 //r3 |= r6
-    STRB r3, [r1, #OFFSET_MODR] //GPIO->MODR = r3
+    STR r3, [r1, #OFFSET_MODR] //GPIO->MODR = r3
 
     //GPIO->PUPDR &=~  (3 <<(pinnr*2)); //clear the 2 bits (pp/od)
-    LDRB r3, [r1, #OFFSET_PUPDR] //r3 = GPIO->PUPDR 
+    LDR r3, [r1, #OFFSET_PUPDR] //r3 = GPIO->PUPDR 
     BIC r3, r3, r5 //r3 &= ~r5
 
     //GPIO->PUPDR |= GPIO_PuPd_UP <<(pinnr*2); //set the correct bits for pp/od
     MOV r6, #GPIO_PuPd_UP
     LSL r6, r6, r4 //r6 = GPIO_PuPd_UP << (pinnr*2) 
     ORR r3, r3, r6 //r3 |= r6
-    STRB r3, [r1, #OFFSET_PUPDR] //GPIO->PUPDR = r3
+    STR r3, [r1, #OFFSET_PUPDR] //GPIO->PUPDR = r3
     
     //GPIO->OTYPER &=~ (1 << pinnr); //Clear the bit (otype)
-    LDRB r3, [r1, #OFFSET_OTYPER] //r3 = GPIO->OTYPER
+    LDRH r3, [r1, #OFFSET_OTYPER] //r3 = GPIO->OTYPER
     MOV r5, #1 //r5 = 1
     LSL r5, r5, r2 //r5 = 1 << pinnr
     BIC r3, r3, r5 //r3 &= ~r5
@@ -84,16 +86,15 @@ pin_create:
     MOV r6, #GPIO_OType_OD
     LSL r6, r6, r2 //r6 = GPIO_OType_OD << pinnr 
     ORR r3, r3, r6 //r3 |= r6
-    STRB r3, [r1, #OFFSET_OTYPER] //GPIO->OTYPER = r3
+    STRH r3, [r1, #OFFSET_OTYPER] //GPIO->OTYPER = r3
 
     //pin->GPIO=GPIO; // Set the gpiopin in the pin structure
     STR r1, [r0, #OFFSET_PIN_GPIO]
 
     //pin->pinmask=0x01<<pinnr; // Insert the pinmask
-    STR r5, [r0, #OFFSET_PIN_PINMASK]
+    STRH r5, [r0, #OFFSET_PIN_PINMASK]
 
-
-    //TODO: Implement
+    POP {r4, r5, r6, pc}
 
 end_pin_create:
 
@@ -115,11 +116,29 @@ end_pin_get:
 //No Parameters, No Return value
 io_init:
 
-    //convention for idermiediate labels. io_init_<whatever>
-    //TODO: Implement
+    //pin_create(&pin_t0, GPIOC, 7);  // create pin_t0
+    LDR r0, =#pin_t0
+    LDR r1, =0x40020800
+    MOV r2, #7
+    BL pin_create
 
+    //pin_create(&pin_t1, GPIOB, 15); // create pin_t1
+    LDR r0, =#pin_t1
+    LDR r1, =0x40020400
+    MOV r2, #15
+    BL pin_create
 
-    //BL pin_create (4x)
+    //pin_create(&pin_t2, GPIOB, 14); // create pin_t2
+    LDR r0, =#pin_t3
+    LDR r1, =0x40020400
+    MOV r2, #14
+    BL pin_create
+
+    //pin_create(&pin_t3, GPIOI, 0);  // create pin_t3
+    LDR r0, =#pin_t3
+    LDR r1, =0x40022000
+    MOV r2, #0
+    BL pin_create
 
 
 end_io_init:
